@@ -27,6 +27,7 @@
   const weekStart = (s) => { const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return iso(d); };
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const de = (n) => Number(n).toLocaleString("de-DE");
+  // Zwei Trainings im Wechsel (intern A und B), damit jede Übung genug Pause bekommt
   const kg = (ex, w) => (ex.extra ? "+" : "") + de(w) + " kg";
 
   // Welcher Tag ist dran? Nach dem letzten Krafttraining der andere.
@@ -89,7 +90,7 @@
     const n = new Set(rows.filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const { next, was, last } = nextDay(rows);
     const z = zyklusHalt(cache), sick = krank(cache);
-    const head = last === t ? `Heute erledigt: Tag ${was} ✓ · als Nächstes Tag ${next}` : `Als Nächstes: Tag ${next}`;
+    const head = last === t ? "Heute erledigt ✓ · das ist beim nächsten Mal dran:" : "Das ist beim nächsten Krafttraining dran:";
     const c = card(parent, "Dein Plan", head);
     const items = PLAN[next].map((ex) => {
       const g = target(ex, rows, z.hold);
@@ -103,7 +104,7 @@
       ${sick ? `<p class="p-warn">Du hast gerade „${esc(sick.status)}“ eingetragen: nur leicht trainieren oder Pause.</p>` : ""}
       ${z.text ? `<p class="c-note">${esc(z.text)}</p>` : ""}
       ${items.map((i) => i.html).join("")}
-      <button type="button" class="btn small-btn p-start">Tag ${next} eintragen</button>
+      <button type="button" class="btn small-btn p-start">Training eintragen</button>
       <p class="c-hint">Bereich je Übung: erst alle Sätze bis zur oberen Zahl, dann schwerer und wieder unten anfangen.</p>`);
     c.querySelector(".p-start").addEventListener("click", () => {
       window.dispatchEvent(new CustomEvent("tb-plan", { detail: items.map((i) => ({ u: i.ex.u, w: i.g.w })) }));
@@ -135,7 +136,14 @@
     c.insertAdjacentHTML("beforeend", `
       <div class="p-week">Kraft ${dots(Math.min(k, KRAFT_PRO_WOCHE), KRAFT_PRO_WOCHE)} <span>${k} von ${KRAFT_PRO_WOCHE}</span></div>
       <div class="p-week">Laufen ${dots(Math.min(l, LAUF_PRO_WOCHE), LAUF_PRO_WOCHE)} <span>${l} von ${LAUF_PRO_WOCHE}</span></div>
-      <p class="c-hint">Als Nächstes beim Krafttraining: Tag ${next}. Details unter Training.</p>`);
+      <p class="c-hint">Als Nächstes: ${esc(PLAN[next].map((e) => e.u.replace(" im Liegestütz", "")).join(", "))}. Antippen für deinen Plan ›</p>`);
+    // Ganze Karte führt zum Plan unter Training → Kraft
+    c.classList.add("p-link");
+    c.setAttribute("role", "link");
+    c.addEventListener("click", () => {
+      location.hash = "#training";
+      setTimeout(() => document.querySelector('.chip[data-sport="kraft"]')?.click(), 0);
+    });
   }
 
   window.TBPlan = { kraft, laufen, woche, PLAN };

@@ -507,3 +507,4 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .diktat .btn { margin-top: 6px; }
 [data-diktat-msg] { flex: 1 1 100%; margin: 0; color: var(--hi); }
 #diktat-mic.on { background: var(--hi); color: #111; }
+.plan.p-link { cursor: pointer; }
