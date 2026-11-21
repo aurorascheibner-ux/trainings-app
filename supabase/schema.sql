@@ -105,11 +105,23 @@ create table if not exists befinden (
   notiz text
 );
 
+-- Tages-Check im Zyklus: eine Zeile pro Tag
+create table if not exists zyklus_tag (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  created_at timestamptz not null default now(),
+  datum date not null,
+  blutung text,                       -- Keine, Schmierblutung, Leicht, Mittel, Stark
+  symptome text[] not null default '{}',
+  notiz text,
+  unique (user_id, datum)
+);
+
 -- Schutzregeln: nur eigene Zeilen
 do $$
 declare t text;
 begin
-  foreach t in array array['bouldern','kraft','laufen','rad','ernaehrung','zyklus','befinden'] loop
+  foreach t in array array['bouldern','kraft','laufen','rad','ernaehrung','zyklus','befinden','zyklus_tag'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "nur eigene Zeilen" on %I', t);
     execute format('create policy "nur eigene Zeilen" on %I for all to authenticated

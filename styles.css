@@ -45,7 +45,10 @@ html, body { margin: 0; }
 
 body {
   position: relative;
-  background: linear-gradient(170deg, var(--bg1), var(--bg2) 75%);
+  /* Hintergrund dunkler als das Farbkonzept, mit dem Ton der aktuellen Seite */
+  background: linear-gradient(170deg,
+    color-mix(in srgb, color-mix(in srgb, var(--bg1) 78%, var(--tint)) 72%, black),
+    color-mix(in srgb, color-mix(in srgb, var(--bg2) 86%, var(--tint)) 62%, black) 75%);
   color: var(--text);
   font-family: var(--sans);
   line-height: 1.45;
@@ -55,11 +58,19 @@ body {
   overflow-x: hidden;
 }
 
+/* ---------- Ton je Seite ----------
+   Jede Seite färbt Hintergrund und Kacheln leicht ein (Wunsch 21.11.). */
+:root { --tint: var(--bg1); --tint-a: 0%; }
+[data-page="training"]   { --tint: #e0a050; --tint-a: 12%; }
+[data-page="ernaehrung"] { --tint: #8fc27a; --tint-a: 12%; }
+[data-page="zyklus"]     { --tint: #d9728f; --tint-a: 13%; }
+[data-page="befinden"]   { --tint: #8fa3e6; --tint-a: 12%; }
+
 /* weiche Farbflecken hinter dem Glas, damit es nach Glas aussieht */
 .glow {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 42%),
+    radial-gradient(circle at 85% 12%, color-mix(in srgb, color-mix(in srgb, var(--c1) 50%, var(--tint)) 30%, transparent), transparent 42%),
     radial-gradient(circle at 8% 55%, color-mix(in srgb, var(--c4) 22%, transparent), transparent 40%),
     radial-gradient(circle at 70% 92%, color-mix(in srgb, var(--c3) 18%, transparent), transparent 40%);
 }
@@ -80,10 +91,14 @@ main { max-width: 560px; margin: 0 auto; }
 /* ---------- Glas ---------- */
 .glass {
   position: relative;
-  background: linear-gradient(150deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 55%, rgba(255,255,255,.03));
+  /* heller und deckender als der Hintergrund, damit sich die Kacheln klar abheben */
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--tint) var(--tint-a), transparent), transparent 70%),
+    linear-gradient(150deg, rgba(255,255,255,.26), rgba(255,255,255,.13) 55%, rgba(255,255,255,.09)),
+    color-mix(in srgb, var(--bg1) 55%, transparent);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.22);
   border-radius: var(--radius);
   box-shadow:
     0 22px 38px -18px rgba(0,0,0,.65),
@@ -360,3 +375,67 @@ main { max-width: 560px; margin: 0 auto; }
 .c-bar .t { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: 4px; }
 .c-track { height: 10px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
 .c-track i { display: block; height: 100%; border-radius: 99px; background: var(--hi); }
+
+/* ---------- Zyklus-Bereich ---------- */
+.zyklus-box { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.zyklus-box > * { min-width: 0; }
+.section-h { margin: 22px 4px 10px; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.z-ring-card { padding: 18px 18px 16px; text-align: center; }
+.z-ring { width: min(260px, 72vw); height: auto; display: block; margin: 0 auto; overflow: visible; }
+.z-ring path { stroke-linecap: butt; }
+.z-mark { fill: #fff; stroke: rgba(0,0,0,.25); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(255,255,255,.7)); }
+.z-r-lbl { fill: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-family: var(--sans); }
+.z-r-day { fill: var(--text); font-size: 56px; font-family: var(--serif); font-weight: 500; }
+.z-r-phase { font-size: 15px; font-weight: 800; font-family: var(--sans); }
+.z-r-sub { margin: 4px 0 10px; color: var(--text); font-weight: 700; }
+.z-actions { margin-top: 12px; display: flex; justify-content: center; }
+.z-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: .75rem; color: var(--muted); margin-top: 10px; }
+.z-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.z-legend i { width: 10px; height: 10px; border-radius: 99px; display: inline-block; }
+.z-legend i.per { background: #d9728f; }
+.z-legend i.per-prog { border: 2px dashed #d9728f; }
+.z-legend i.ovu { background: rgba(224,192,79,.45); }
+.z-legend i.z-dot-l { width: 6px; height: 6px; background: var(--text); }
+
+.z-cal { padding: 16px 14px 14px; }
+.z-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.z-cal-head h3 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 1.2rem; }
+.z-cal-head .icon-btn { width: 38px; height: 38px; border-radius: 99px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: var(--text); font-size: 1.3rem; }
+.z-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.z-wd span { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); padding: 2px 0 4px; }
+.z-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 99px; background: transparent; color: var(--text); font: inherit; font-size: .9rem; display: grid; place-items: center; padding: 0; }
+.z-day.fut { opacity: .55; }
+.z-day.per { background: #d9728f; color: #2a1720; font-weight: 800; }
+.z-day.per-prog { border: 2px dashed #d9728f; }
+.z-day.ovu { background: rgba(224,192,79,.3); }
+.z-day.today { box-shadow: inset 0 0 0 2px var(--text); }
+.z-day.sel { outline: 2px solid var(--hi); outline-offset: 1px; }
+.z-dot { position: absolute; bottom: 3px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 99px; background: currentColor; }
+
+.z-check { padding: 18px 16px 16px; }
+.z-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 6px; }
+.z-chip { border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); color: var(--text); font: inherit; font-size: .85rem; padding: 7px 12px; border-radius: 99px; }
+.z-chip.on { background: var(--hi); border-color: var(--hi); color: #1d1d1d; font-weight: 700; }
+
+.z-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 12px; }
+.z-stats div { padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.07); }
+.z-stats b { display: block; font-family: var(--serif); font-size: 1.9rem; font-weight: 500; color: var(--hi); line-height: 1.1; }
+.z-stats span { font-size: .78rem; color: var(--muted); }
+.z-bar { display: grid; grid-template-columns: 56px 1fr 48px; align-items: center; gap: 8px; margin: 6px 0; font-size: .8rem; }
+.z-bar-d { color: var(--muted); }
+.z-bar-n { text-align: right; font-weight: 700; }
+.z-bar-t { position: relative; height: 12px; border-radius: 99px; background: rgba(255,255,255,.06); }
+.z-bar-t i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; }
+.z-bar-len { background: rgba(255,255,255,.35); }
+.z-bar-len.run { background: repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 6px, rgba(255,255,255,.12) 6px 10px); }
+.z-bar-per { background: #d9728f; }
+.z-table td { white-space: normal; }
+.z-table td:first-child { white-space: nowrap; }
+
+/* Phasenkarten zum Aufklappen */
+details.c-phase summary { list-style: none; cursor: pointer; }
+details.c-phase summary::-webkit-details-marker { display: none; }
+details.c-phase summary .c-title::after { content: "›"; margin-left: auto; transition: transform .2s; color: var(--muted); }
+details.c-phase[open] summary .c-title::after { transform: rotate(90deg); }
+.c-tipp-kurz { display: block; font-size: .85rem; color: var(--muted); }
+details.c-phase[open] .c-tipp-kurz { display: none; }

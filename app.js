@@ -56,6 +56,7 @@ function showView() {
   const name = location.hash.replace("#", "") || "heute";
   const view = TITLES[name] ? name : "heute";
 
+  document.documentElement.dataset.page = view;
   document.querySelectorAll(".view").forEach((el) => {
     el.hidden = el.dataset.view !== view;
   });

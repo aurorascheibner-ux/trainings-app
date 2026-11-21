@@ -365,12 +365,14 @@
     const cur = C.phasen.find((p) => p.start <= ti && ti <= p.ende);
     const cyc = C.phasen.filter((p) => p.phase === "Periode" && p.start <= ti).pop();
     const z = zyklusHeute();
-    if (z && z.overdue) parent.appendChild(E("p", "glass c-alert", `Deine Periode ist seit ${z.day - 26} Tagen überfällig (Zyklustag ${z.day}). Bis du sie einträgst, läuft hier die Lutealphase weiter.`));
+    if (z && z.overdue) parent.appendChild(E("p", "glass c-alert", `Deine Periode lässt auf sich warten (Zyklustag ${z.day}). Bis du sie einträgst, läuft hier die Lutealphase weiter.`));
+    const head = E("h3", "section-h", "Training und Essen je Phase"); parent.appendChild(head);
     PHASES.forEach((P) => {
       const info = PHASE_INFO[P], on = cur && cur.phase === P;
-      const c = E("article", "glass c-phase" + (on ? " on" : ""));
+      const c = E("details", "glass c-phase" + (on ? " on" : ""));
+      c.open = on;
       c.style.setProperty("--ph", BANDC[P]);
-      const h = E("h3", "c-title", info.titel); if (on) h.appendChild(E("span", "c-now", "Jetzt")); c.appendChild(h);
+      const sm = E("summary"); const h = E("h3", "c-title", info.titel); if (on) h.appendChild(E("span", "c-now", "Jetzt")); sm.appendChild(h); sm.appendChild(E("span", "c-tipp-kurz", info.tipp)); c.appendChild(sm);
       const r = cyc ? C.phasen.find((p) => p.phase === P && p.zyklus_start === cyc.start) : null;
       if (r) { const a = Math.round((pd(r.start) - pd(cyc.start)) / DAY) + 1, e = Math.round((pd(r.ende) - pd(cyc.start)) / DAY) + 1; c.appendChild(E("p", "c-note", "Zyklustag " + a + (e > a ? "–" + e : "") + " · " + fmtD(pd(r.start)) + (e > a ? " bis " + fmtD(pd(r.ende)) : ""))); }
       const list = (lbl, items) => { c.appendChild(E("span", "c-lbl", lbl)); const ul = E("ul"); items.forEach((i) => ul.appendChild(E("li", "", i))); c.appendChild(ul); };

@@ -18,6 +18,8 @@ Auroras Handy-App zum Eintragen von Training, Ernährung, Zyklus und Befinden.
 | `styles.css` | Aussehen (Farben, Abstände) |
 | `app.js` | Wechsel zwischen den Tabs, Optik |
 | `data.js` | Anmeldung, Formulare, Listen, Heute-Übersicht |
+| `charts.js` | Grafiken (mit d3) |
+| `zyklus.js` | Zyklus-Bereich: Ring, Kalender, Tages-Check, Auswertung |
 | `config.js` | Adresse und öffentlicher Schlüssel der Datenbank |
 | `supabase/schema.sql` | Tabellen und Schutzregeln der Datenbank |
 | `manifest.webmanifest` | Name und Icon für den Startbildschirm |
