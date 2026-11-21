@@ -1,11 +1,13 @@
 // Service Worker: hält die App-Dateien bereit, damit sie installierbar ist
 // und auch ohne Netz startet. Bei jeder Änderung an der App VERSION erhöhen.
-const VERSION = "v3";
+const VERSION = "v4";
 const FILES = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
+  "data.js",
+  "config.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -27,7 +29,8 @@ self.addEventListener("activate", (event) => {
 
 // Erst aus dem Netz laden (immer die neueste Version), sonst aus dem Speicher.
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  // Nur die App-Dateien selbst; Anfragen an die Datenbank nie zwischenspeichern.
+  if (event.request.method !== "GET" || new URL(event.request.url).origin !== location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then((res) => {

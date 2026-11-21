@@ -79,8 +79,42 @@
       </div>
       <p class="muted small">Wähle dein Farbkonzept. Die Wahl wird auf diesem Handy gespeichert.</p>
       <div id="theme-list" class="theme-list"></div>
+      <div class="account" id="account" hidden>
+        <h3>Konto</h3>
+        <p class="muted small">Angemeldet als <span id="account-email"></span></p>
+        <button type="button" class="btn ghost" id="logout">Abmelden</button>
+      </div>
     </form>
   </dialog>
+
+  <section id="login" class="login" hidden>
+    <form id="login-form" class="glass login-card">
+      <h2>Anmelden</h2>
+      <p class="muted small">Deine Einträge sind mit deinem Konto geschützt. Nur du siehst sie.</p>
+      <label class="field"><span>E-Mail</span><input type="email" name="email" autocomplete="email" required></label>
+      <label class="field"><span>Passwort</span><input type="password" name="password" autocomplete="current-password" minlength="8" required></label>
+      <button class="btn" type="submit" data-mode="login">Anmelden</button>
+      <button class="btn ghost" type="button" id="signup">Konto zum ersten Mal anlegen</button>
+      <p class="msg small" id="login-msg" role="status"></p>
+    </form>
+  </section>
+
+  <dialog id="entry" class="sheet glass">
+    <form id="entry-form" novalidate>
+      <div class="sheet-head">
+        <h2 id="entry-title">Eintrag</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Schließen">✕</button>
+      </div>
+      <div id="entry-picker" class="picker" hidden></div>
+      <div id="entry-fields"></div>
+      <p class="msg small" id="entry-msg" role="status"></p>
+      <div class="sheet-actions">
+        <button class="btn" type="submit">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
 
   <main id="views">
     <!-- Heute -->
@@ -89,71 +123,57 @@
         <p class="eyebrow">Mein Zyklus</p>
         <h2>Hallo <em>Aurora</em></h2>
         <svg class="curve" viewBox="0 0 300 70" aria-hidden="true">
-          <path d="M8 52 C 70 52, 110 18, 150 18 S 240 50, 292 30" class="curve-track"/>
-          <path d="M8 52 C 70 52, 110 18, 150 18" class="curve-done"/>
-          <circle cx="150" cy="18" r="7" class="curve-dot"/>
+          <path d="M8 52 C 70 52, 110 18, 150 18 S 240 50, 292 30" class="curve-track" id="cycle-track"/>
+          <path d="M8 52 C 70 52, 110 18, 150 18 S 240 50, 292 30" class="curve-done" id="cycle-done" pathLength="100" stroke-dasharray="50 100"/>
+          <circle cx="150" cy="18" r="7" class="curve-dot" id="cycle-dot"/>
         </svg>
         <div class="phases"><span>Periode</span><span>Follikel</span><span>Eisprung</span><span>Luteal</span></div>
-        <p class="muted small">Sobald du deinen Zyklus einträgst, siehst du hier, wo du gerade stehst.</p>
+        <p class="muted small" id="cycle-text">Sobald du deinen Zyklus einträgst, siehst du hier, wo du gerade stehst.</p>
       </div>
       <div class="grid">
-        <a class="glass tile" href="#training" style="--accent: var(--c1)">
+        <a class="glass tile" href="#training" data-tile="training" style="--accent: var(--c1)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
-          <strong>Training</strong><span class="muted small">noch nichts eingetragen</span>
+          <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
         </a>
-        <a class="glass tile" href="#ernaehrung" style="--accent: var(--c2)">
+        <a class="glass tile" href="#ernaehrung" data-tile="ernaehrung" style="--accent: var(--c2)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-ernaehrung"/></svg></span>
-          <strong>Ernährung</strong><span class="muted small">noch nichts eingetragen</span>
+          <strong>Ernährung</strong><span class="muted small" data-sum="ernaehrung">noch nichts eingetragen</span>
         </a>
-        <a class="glass tile" href="#zyklus" style="--accent: var(--c3)">
+        <a class="glass tile" href="#zyklus" data-tile="zyklus" style="--accent: var(--c3)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-zyklus"/></svg></span>
-          <strong>Zyklus</strong><span class="muted small">noch nichts eingetragen</span>
+          <strong>Zyklus</strong><span class="muted small" data-sum="zyklus">noch nichts eingetragen</span>
         </a>
-        <a class="glass tile" href="#befinden" style="--accent: var(--c4)">
+        <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-befinden"/></svg></span>
-          <strong>Befinden</strong><span class="muted small">noch nichts eingetragen</span>
+          <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
         </a>
       </div>
     </section>
 
     <section class="view" data-view="training" hidden>
-      <div class="glass empty" style="--accent: var(--c1)">
-        <span class="ico-wrap big"><svg class="ico"><use href="#i-training"/></svg></span>
-        <h2>Training</h2>
-        <p class="muted">Bouldern, Kraft, Laufen und Rad kannst du hier bald eintragen.</p>
-        <span class="badge">kommt bald</span>
+      <div class="chips" role="tablist" aria-label="Sportart">
+        <button type="button" class="chip" data-sport="bouldern">Bouldern</button>
+        <button type="button" class="chip" data-sport="kraft">Kraft</button>
+        <button type="button" class="chip" data-sport="laufen">Laufen</button>
+        <button type="button" class="chip" data-sport="rad">Rad</button>
       </div>
+      <div class="entries" data-list="training" style="--accent: var(--c1)"></div>
     </section>
 
     <section class="view" data-view="ernaehrung" hidden>
-      <div class="glass empty" style="--accent: var(--c2)">
-        <span class="ico-wrap big"><svg class="ico"><use href="#i-ernaehrung"/></svg></span>
-        <h2>Ernährung</h2>
-        <p class="muted">Mahlzeiten mit Kalorien und Eiweiß kannst du hier bald eintragen. Später auch per Foto.</p>
-        <span class="badge">kommt bald</span>
-      </div>
+      <div class="entries" data-list="ernaehrung" style="--accent: var(--c2)"></div>
     </section>
 
     <section class="view" data-view="zyklus" hidden>
-      <div class="glass empty" style="--accent: var(--c3)">
-        <span class="ico-wrap big"><svg class="ico"><use href="#i-zyklus"/></svg></span>
-        <h2>Zyklus</h2>
-        <p class="muted">Periodenbeginn und -ende kannst du hier bald eintragen.</p>
-        <span class="badge">kommt bald</span>
-      </div>
+      <div class="entries" data-list="zyklus" style="--accent: var(--c3)"></div>
     </section>
 
     <section class="view" data-view="befinden" hidden>
-      <div class="glass empty" style="--accent: var(--c4)">
-        <span class="ico-wrap big"><svg class="ico"><use href="#i-befinden"/></svg></span>
-        <h2>Befinden</h2>
-        <p class="muted">Wie du dich fühlst, Energie und Krankheitstage kannst du hier bald eintragen.</p>
-        <span class="badge">kommt bald</span>
-      </div>
+      <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
     </section>
   </main>
 
-  <button class="fab" type="button" aria-label="Eintrag hinzufügen" disabled title="Eintragen kommt im nächsten Schritt">+</button>
+  <button class="fab" id="fab" type="button" aria-label="Eintrag hinzufügen" disabled>+</button>
 
   <nav class="tabbar" aria-label="Bereiche">
     <a href="#heute" data-tab="heute"><svg class="ico"><use href="#i-heute"/></svg>Heute</a>
@@ -163,6 +183,8 @@
     <a href="#befinden" data-tab="befinden"><svg class="ico"><use href="#i-befinden"/></svg>Befinden</a>
   </nav>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="data.js"></script>
 </body>
 </html>
