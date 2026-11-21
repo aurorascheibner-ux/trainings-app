@@ -400,7 +400,8 @@
   }
 
   // ---------- Ernährung: Tagesziel ----------
-  const FOOD = { train: { kcal: 2100, p: 130, f: 65, kh: 250 }, rest: { kcal: 1900, p: 130, f: 65, kh: 200 } };
+  // Leichtes Defizit (Entscheidung 21.11.2026): Grundumsatz Waage 1.681 kcal, fettfreie Masse 60,7 kg
+  const FOOD = { train: { kcal: 2300, p: 130, f: 70, kh: 290 }, rest: { kcal: 2000, p: 130, f: 70, kh: 210 } };
   function tagesziel(parent) {
     const ti = iso(todayUTC());
     const trained = ["bouldern", "kraft", "laufen", "rad"].some((t) => (C[t] || []).some((r) => r.datum === ti));
@@ -408,21 +409,36 @@
     const cur = C.phasen.find((p) => p.start <= ti && ti <= p.ende);
     const base = { ...(trained ? FOOD.train : FOOD.rest) };
     let why = trained ? "Trainingstag" : "Ruhetag, wird zum Trainingstag, sobald du Training einträgst";
-    if (sick) { Object.assign(base, { kcal: 2100, kh: 250 }); why = "Krank: auf Erhaltung essen, kein Defizit, viel trinken"; }
-    else if (cur && cur.phase === "Periode") { base.kcal = trained ? 2300 : 2100; base.kh += 50; why += " · Periode: auf Erhaltung"; }
+    if (sick) { Object.assign(base, { kcal: 2400, kh: 310 }); why = "Krank: auf Erhaltung essen, kein Defizit, viel trinken"; }
+    else if (cur && cur.phase === "Periode") { base.kcal = trained ? 2500 : 2200; base.kh += 50; why += " · Periode: auf Erhaltung"; }
     else if (cur && cur.phase === "Lutealphase") { base.kcal += 150; base.kh += 25; why += " · Lutealphase: +150 kcal"; }
     const eat = (C.ernaehrung || []).filter((r) => r.datum === ti);
-    const kc = Math.round(d3.sum(eat, (r) => Number(r.kcal) || 0)), pr = Math.round(d3.sum(eat, (r) => Number(r.protein_g) || 0));
+    const sum = (k) => Math.round(d3.sum(eat, (r) => Number(r[k]) || 0) * 10) / 10;
+    const kc = Math.round(sum("kcal")), pr = Math.round(sum("protein_g"));
+    // Richtwerte: gesättigte Fette höchstens 10 % der Energie, Zucker höchstens etwa 50 g, Ballaststoffe mind. 30 g (DGE/WHO)
+    const satMax = Math.round((base.kcal * 0.1) / 9), sugMax = 50, fibMin = 30;
     const body = card(parent, "Heutiges Ziel", why);
     body.appendChild(E("div", "c-big", fnum(base.kcal) + " kcal"));
-    const mac = E("div", "c-macros"); [["Eiweiß", base.p], ["Fett", base.f], ["Kohlenhydrate", base.kh]].forEach(([n, v]) => mac.appendChild(E("span", "", n + " " + v + " g"))); body.appendChild(mac);
-    const bar = (lbl, have, goal, unit) => {
-      const r = E("div", "c-bar"), t = E("div", "t"); t.append(E("b", "", lbl), E("span", "", fnum(have) + " von " + fnum(goal) + " " + unit));
+    const bar = (lbl, have, goal, unit, kind) => {
+      const r = E("div", "c-bar" + (kind === "max" && have > goal ? " over" : "")), t = E("div", "t");
+      t.append(E("b", "", lbl), E("span", "", fnum(have) + (kind === "max" ? " von max. " : kind === "min" ? " von mind. " : " von ") + fnum(goal) + " " + unit));
       const tr = E("div", "c-track"), f = E("i"); f.style.width = Math.min(100, (have / goal) * 100) + "%"; tr.appendChild(f); r.append(t, tr); return r;
     };
-    body.append(bar("Energie", kc, base.kcal, "kcal"), bar("Eiweiß", pr, base.p, "g"));
+    const fett = sum("fett_g"), ges = sum("fett_ges_g");
+    body.append(
+      bar("Energie", kc, base.kcal, "kcal"),
+      bar("Eiweiß", pr, base.p, "g"),
+      bar("Kohlenhydrate", sum("kh_g"), base.kh, "g"),
+      bar("· davon Zucker", sum("zucker_g"), sugMax, "g", "max"),
+      bar("Fett", fett, base.f, "g"),
+      bar("· gesättigt", ges, satMax, "g", "max"),
+      bar("· ungesättigt", Math.max(0, Math.round((fett - ges) * 10) / 10), base.f - satMax, "g"),
+      bar("Ballaststoffe", sum("ballast_g"), fibMin, "g", "min"),
+    );
     const ok = Math.max(0, base.kcal - kc), op = Math.max(0, base.p - pr);
-    body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") : "Noch nichts eingetragen."));
+    const ohne = eat.length && eat.some((r) => r.kcal != null && r.kh_g == null) ? " Bei manchen Einträgen fehlen Kohlenhydrate und Fett, die zählen dort noch nicht mit." : "";
+    body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") + ohne : "Noch nichts eingetragen."));
+    body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, 74 kg, etwa 18 % Körperfett (Waage), viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
   }
 
   // ---------- Verteilen auf die Tabs ----------

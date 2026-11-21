@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien bereit, damit sie installierbar ist
 // und auch ohne Netz startet. Bei jeder Änderung an der App VERSION erhöhen.
-const VERSION = "v9";
+const VERSION = "v10";
 const FILES = [
   "./",
   "index.html",
@@ -9,6 +9,7 @@ const FILES = [
   "data.js",
   "charts.js",
   "zyklus.js",
+  "food.js",
   "config.js",
   "manifest.webmanifest",
   "icons/icon-192.png",

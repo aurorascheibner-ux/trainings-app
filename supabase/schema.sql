@@ -84,6 +84,12 @@ create table if not exists ernaehrung (
   protein_g numeric(6,1),
   notiz text
 );
+-- Weitere Nährwerte (21.11.2026)
+alter table ernaehrung add column if not exists kh_g numeric(6,1);
+alter table ernaehrung add column if not exists zucker_g numeric(6,1);
+alter table ernaehrung add column if not exists fett_g numeric(6,1);
+alter table ernaehrung add column if not exists fett_ges_g numeric(6,1);
+alter table ernaehrung add column if not exists ballast_g numeric(6,1);
 
 create table if not exists zyklus (
   id uuid primary key default gen_random_uuid(),
