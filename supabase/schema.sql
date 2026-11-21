@@ -123,11 +123,31 @@ create table if not exists zyklus_tag (
   unique (user_id, datum)
 );
 
+-- Meine Lebensmittel: selbst angelegte und schon gewählte Produkte, Nährwerte pro 100 g
+create table if not exists lebensmittel (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  created_at timestamptz not null default now(),
+  code text,                          -- Strichcode, falls vorhanden
+  name text not null,
+  marke text,
+  kcal numeric(6,1),
+  protein_g numeric(6,1),
+  kh_g numeric(6,1),
+  zucker_g numeric(6,1),
+  fett_g numeric(6,1),
+  fett_ges_g numeric(6,1),
+  ballast_g numeric(6,1),
+  portion_g numeric(6,1),             -- 1 Portion = … g
+  anzahl int not null default 0,      -- wie oft gegessen (für die Reihenfolge in der Suche)
+  zuletzt date
+);
+
 -- Schutzregeln: nur eigene Zeilen
 do $$
 declare t text;
 begin
-  foreach t in array array['bouldern','kraft','laufen','rad','ernaehrung','zyklus','befinden','zyklus_tag'] loop
+  foreach t in array array['bouldern','kraft','laufen','rad','ernaehrung','zyklus','befinden','zyklus_tag','lebensmittel'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "nur eigene Zeilen" on %I', t);
     execute format('create policy "nur eigene Zeilen" on %I for all to authenticated

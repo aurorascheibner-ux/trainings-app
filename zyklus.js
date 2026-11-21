@@ -9,7 +9,8 @@
   const todayISO = () => { const n = new Date(); return iso(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); };
   const addDays = (s, n) => iso(+pd(s) + n * DAY);
   const diff = (a, b) => Math.round((pd(b) - pd(a)) / DAY);
-  const fmt = (s, o = { day: "numeric", month: "short" }) => pd(s).toLocaleDateString("de-DE", { ...o, timeZone: "UTC" });
+  // Jahr nur anzeigen, wenn das Datum nicht aus dem aktuellen Jahr ist
+  const fmt = (s, o = { day: "numeric", month: "short" }) => pd(s).toLocaleDateString("de-DE", { ...o, ...(pd(s).getUTCFullYear() !== new Date().getFullYear() && { year: "numeric" }), timeZone: "UTC" });
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const BANDC = { Periode: "#d9728f", Follikelphase: "#5fb88f", Eisprung: "#e0c04f", Lutealphase: "#9b8be0" };
   const KURZ = { Periode: "Periode", Follikelphase: "Follikelphase", Eisprung: "Eisprung", Lutealphase: "Lutealphase" };
