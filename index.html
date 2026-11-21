@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Trainingsbuch</title>
+  <meta name="description" content="Auroras Trainingsbuch: Training, Ernährung, Zyklus und Befinden eintragen.">
+  <meta name="theme-color" content="#16151d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="title">Heute</h1>
+    <p id="subtitle" class="muted"></p>
+  </header>
+
+  <main id="views">
+    <!-- Heute -->
+    <section class="view" data-view="heute">
+      <div class="card hero">
+        <p class="eyebrow">Willkommen</p>
+        <h2>Hallo Aurora</h2>
+        <p class="muted">Hier siehst du bald auf einen Blick, was heute ansteht: Zyklustag, Training und wie viel du schon gegessen hast.</p>
+      </div>
+      <div class="grid">
+        <a class="tile" href="#training" style="--accent: var(--mint)">
+          <span class="dot"></span><strong>Training</strong><span class="muted small">noch nichts eingetragen</span>
+        </a>
+        <a class="tile" href="#ernaehrung" style="--accent: var(--peach)">
+          <span class="dot"></span><strong>Ernährung</strong><span class="muted small">noch nichts eingetragen</span>
+        </a>
+        <a class="tile" href="#zyklus" style="--accent: var(--rose)">
+          <span class="dot"></span><strong>Zyklus</strong><span class="muted small">noch nichts eingetragen</span>
+        </a>
+        <a class="tile" href="#befinden" style="--accent: var(--lilac)">
+          <span class="dot"></span><strong>Befinden</strong><span class="muted small">noch nichts eingetragen</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Training -->
+    <section class="view" data-view="training" hidden>
+      <div class="card empty" style="--accent: var(--mint)">
+        <h2>Training</h2>
+        <p class="muted">Bouldern, Kraft, Laufen und Rad kannst du hier bald eintragen.</p>
+        <span class="badge">kommt bald</span>
+      </div>
+    </section>
+
+    <!-- Ernährung -->
+    <section class="view" data-view="ernaehrung" hidden>
+      <div class="card empty" style="--accent: var(--peach)">
+        <h2>Ernährung</h2>
+        <p class="muted">Mahlzeiten mit Kalorien und Eiweiß kannst du hier bald eintragen. Später auch per Foto.</p>
+        <span class="badge">kommt bald</span>
+      </div>
+    </section>
+
+    <!-- Zyklus -->
+    <section class="view" data-view="zyklus" hidden>
+      <div class="card empty" style="--accent: var(--rose)">
+        <h2>Zyklus</h2>
+        <p class="muted">Periodenbeginn und -ende kannst du hier bald eintragen.</p>
+        <span class="badge">kommt bald</span>
+      </div>
+    </section>
+
+    <!-- Befinden -->
+    <section class="view" data-view="befinden" hidden>
+      <div class="card empty" style="--accent: var(--lilac)">
+        <h2>Befinden</h2>
+        <p class="muted">Wie du dich fühlst, Energie und Krankheitstage kannst du hier bald eintragen.</p>
+        <span class="badge">kommt bald</span>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" type="button" aria-label="Eintrag hinzufügen" disabled title="Eintragen kommt im nächsten Schritt">+</button>
+
+  <nav class="tabbar" aria-label="Bereiche">
+    <a href="#heute" data-tab="heute"><span class="ico">☀</span>Heute</a>
+    <a href="#training" data-tab="training"><span class="ico">▲</span>Training</a>
+    <a href="#ernaehrung" data-tab="ernaehrung"><span class="ico">●</span>Essen</a>
+    <a href="#zyklus" data-tab="zyklus"><span class="ico">◯</span>Zyklus</a>
+    <a href="#befinden" data-tab="befinden"><span class="ico">♡</span>Befinden</a>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
