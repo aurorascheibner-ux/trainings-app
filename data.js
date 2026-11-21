@@ -104,10 +104,15 @@ const TABLES = {
       { name: "menge", label: "Menge", type: "text", placeholder: "1 Schüssel" },
       { name: "kcal", label: "kcal", type: "number", half: true },
       { name: "protein_g", label: "Eiweiß (g)", type: "number", step: "0.1", half: true },
+      { name: "kh_g", label: "Kohlenhydrate (g)", type: "number", half: true, extra: true },
+      { name: "zucker_g", label: "davon Zucker (g)", type: "number", half: true, extra: true },
+      { name: "fett_g", label: "Fett (g)", type: "number", half: true, extra: true },
+      { name: "fett_ges_g", label: "davon gesättigt (g)", type: "number", half: true, extra: true },
+      { name: "ballast_g", label: "Ballaststoffe (g)", type: "number", half: true, extra: true },
       NOTIZ,
     ],
     title: (r) => r.lebensmittel,
-    sub: (r) => [r.menge, r.kcal != null && `${r.kcal} kcal`, r.protein_g != null && `${fmtNum(r.protein_g, 1)} g Eiweiß`].filter(Boolean).join(" · "),
+    sub: (r) => [r.menge, r.kcal != null && `${r.kcal} kcal`, r.protein_g != null && `${fmtNum(r.protein_g, 1)} g Eiweiß`, r.kh_g != null && `${fmtNum(r.kh_g, 1)} g KH`, r.fett_g != null && `${fmtNum(r.fett_g, 1)} g Fett`].filter(Boolean).join(" · "),
   },
   zyklus: {
     label: "Periode", dateField: "periode_start", view: "zyklus",
@@ -464,7 +469,7 @@ const SUGGEST = {
       return {
         value: name,
         hint: [r.menge, r.kcal != null && `${r.kcal} kcal`, r.protein_g != null && `${fmtNum(r.protein_g, 1)} g Eiweiß`].filter(Boolean).join(" · "),
-        fill: { menge: r.menge, kcal: r.kcal, protein_g: r.protein_g },
+        fill: { menge: r.menge, kcal: r.kcal, protein_g: r.protein_g, kh_g: r.kh_g, zucker_g: r.zucker_g, fett_g: r.fett_g, fett_ges_g: r.fett_ges_g, ballast_g: r.ballast_g },
       };
     });
   },
@@ -499,7 +504,7 @@ function pickSuggestion(list, i) {
   form.elements[list.dataset.for].value = o.value;
   list.hidden = true;
   const f = o.fill || {};
-  for (const k of ["menge", "kcal", "protein_g"]) {
+  for (const k of ["menge", "kcal", "protein_g", "kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"]) {
     if (k in f && form.elements[k] && !form.elements[k].value) form.elements[k].value = f[k] ?? "";
   }
   if (f.sets && f.sets.length && !(editing && editing.rows)) {
@@ -553,7 +558,14 @@ function openForm(table, rows = null) {
   $(".sheet-actions").hidden = false;
   $("#entry-title").textContent = `${t.label} ${rows ? "bearbeiten" : "eintragen"}`;
   const base = rows ? rows[0] : { [t.dateField]: today(), zweck: "freizeit", status: "krank" };
-  let html = t.fields.map((f) => fieldHTML(f, base[f.name])).join("");
+  // Zusätzliche Nährwerte zum Aufklappen, damit das Formular kurz bleibt
+  const extras = t.fields.filter((f) => f.extra);
+  let html = t.fields.map((f) => {
+    if (!f.extra) return fieldHTML(f, base[f.name]);
+    if (f !== extras[0]) return "";
+    const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
+    return `<details class="more"${open ? " open" : ""}><summary>Kohlenhydrate, Fett, Ballaststoffe</summary><div class="more-grid">${extras.map((x) => fieldHTML(x, base[x.name])).join("")}</div></details>`;
+  }).join("");
   if (t.sets) {
     const sets = rows || [{}, {}, {}];
     html += `<div class="sets"><p class="label">Sätze <span class="muted small">(bei Halteübungen Sek. statt Wdh.)</span></p>${sets.map(setRowHTML).join("")}
@@ -561,6 +573,7 @@ function openForm(table, rows = null) {
   }
   if (rows) html += `<button type="button" class="btn danger" id="delete-entry">Eintrag löschen</button>`;
   $("#entry-fields").innerHTML = html;
+  if (table === "ernaehrung" && window.TBFood) window.TBFood.attach($("#entry-form"));
   $("#entry-msg").textContent = "";
   if (!dlg.open) dlg.showModal();
 }
@@ -654,6 +667,12 @@ $("#entry-form").addEventListener("submit", async (e) => {
     ({ error } = await db.from(table).update(rec).eq("id", rows[0].id));
   } else {
     ({ error } = await db.from(table).insert(rec));
+  }
+  // Neue Nährwert-Spalten noch nicht in Supabase angelegt: ohne sie speichern
+  if (error && /column|schema cache/i.test(error.message || "") && t.fields.some((f) => f.extra)) {
+    t.fields.filter((f) => f.extra).forEach((f) => delete rec[f.name]);
+    ({ error } = rows ? await db.from(table).update(rec).eq("id", rows[0].id) : await db.from(table).insert(rec));
+    if (!error) toast("Gespeichert, aber ohne Kohlenhydrate und Fette: dafür fehlt noch die SQL-Datei.");
   }
   if (error) { console.error(error); msg.textContent = "Speichern hat nicht geklappt: " + error.message; return; }
   dlg.close();
