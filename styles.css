@@ -484,3 +484,19 @@ details.more[open] summary { margin-bottom: 10px; }
 /* Nährwerte per Foto */
 .nl-photo { cursor: pointer; margin: 8px 0 10px; display: inline-flex; }
 input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
+
+/* Trainingsplan */
+.plan .p-week { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin: 4px 0; }
+.plan .p-week span { color: var(--muted); }
+.p-dots { display: inline-flex; gap: 4px; }
+.p-dots i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.p-dots i.on { background: var(--hi); border-color: var(--hi); }
+.p-row { padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, .12); }
+.p-row:first-of-type { margin-top: 6px; }
+.p-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.p-goal { font-family: var(--serif); font-size: 1.15rem; color: var(--hi); margin: 2px 0; }
+.p-sub { color: var(--muted); font-size: .78rem; }
+.p-up { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--hi) 25%, transparent); color: var(--hi); white-space: nowrap; }
+.p-warn { margin: 6px 0; font-size: .82rem; color: #ffb4a6; }
+.plan .p-start { margin-top: 10px; width: 100%; }
+
