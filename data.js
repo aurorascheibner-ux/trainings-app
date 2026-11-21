@@ -567,7 +567,7 @@ function uebBlockHTML(f, name, sets, i) {
   </div>`;
 }
 
-function openForm(table, rows = null) {
+function openForm(table, rows = null, preset = null) {
   const t = TABLES[table];
   editing = { table, rows };
   $("#entry-picker").hidden = true;
@@ -578,7 +578,7 @@ function openForm(table, rows = null) {
   const extras = t.fields.filter((f) => f.extra);
   let html = t.fields.map((f) => {
     // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
-    if (t.sets && f.name === "uebung") return `<div class="uebungen">${uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
+    if (t.sets && f.name === "uebung") return `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);
     if (f !== extras[0]) return "";
     const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
@@ -724,6 +724,9 @@ document.addEventListener("click", (e) => {
     if (rows.length) openForm(ed.dataset.edit, rows);
   }
 });
+
+// „Tag A/B eintragen“ aus der Plan-Karte: alle Übungen mit geplantem Gewicht vorbefüllt
+window.addEventListener("tb-plan", (e) => openForm("kraft", null, e.detail));
 
 $("#fab").addEventListener("click", () => {
   const view = (location.hash.replace("#", "") || "heute");

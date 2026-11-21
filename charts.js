@@ -453,9 +453,13 @@
     const box = document.querySelector(`[data-charts="${view}"]`);
     if (!box || box.closest("[hidden]")) return;
     box.replaceChildren();
+    const P = window.TBPlan;
+    if (view === "heute" && P) P.woche(box, cache);
     if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche", "Eine Spalte pro Tag, ein Block pro Sportart. Tippen zeigt Details."));
     if (view === "training") {
       if (sport === "bouldern") { bGrad(card(box, "Schwerster Boulder pro Session")); bWoche(card(box, "Sessions pro Woche")); }
+      if (sport === "kraft" && P) P.kraft(box, cache);
+      if (sport === "laufen" && P) P.laufen(box, cache);
       if (sport === "kraft") { kUebungen(box); kVol(card(box, "Volumen pro Training", "Summe aus Wiederholungen mal Gewicht über alle Sätze, in kg.")); }
       if (sport === "laufen") { lPace(card(box, "Pace und Puls")); lEff(card(box, "Meter pro Herzschlag", "Steigt der Wert, läufst du schneller bei gleichem Puls.")); }
       if (sport === "rad") { rWoche(card(box, "Radminuten pro Woche")); rPuls(card(box, "Puls pro Fahrt")); }
