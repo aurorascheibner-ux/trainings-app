@@ -66,6 +66,12 @@ body {
 [data-page="zyklus"]     { --tint: #d9728f; --tint-a: 13%; }
 [data-page="befinden"]   { --tint: #8fa3e6; --tint-a: 12%; }
 
+/* Kacheln auf "Heute" im Ton ihrer Seite (Wunsch 21.11.) */
+.tile[data-tile="training"]   { --tint: #e0a050; --tint-a: 30%; }
+.tile[data-tile="ernaehrung"] { --tint: #8fc27a; --tint-a: 30%; }
+.tile[data-tile="zyklus"]     { --tint: #e0708f; --tint-a: 32%; }
+.tile[data-tile="befinden"]   { --tint: #8fa3e6; --tint-a: 30%; }
+
 /* weiche Farbflecken hinter dem Glas, damit es nach Glas aussieht */
 .glow {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
