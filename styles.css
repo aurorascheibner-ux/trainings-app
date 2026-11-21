@@ -480,3 +480,7 @@ details.more[open] summary { margin-bottom: 10px; }
 .scan-manual input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; font: inherit; }
 .scan video[hidden] + .scan-frame { display: none; }
 .c-bar.over .c-track i { background: #ff8a7a; }
+
+/* Nährwerte per Foto */
+.nl-photo { cursor: pointer; margin: 8px 0 10px; display: inline-flex; }
+input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
