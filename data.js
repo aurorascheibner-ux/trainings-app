@@ -394,7 +394,7 @@ const SUGGEST = {
       .sort((a, b) => b.sc - a.sc)
       .map(({ u }) => {
         const { d, sets } = lastSets(u);
-        const hint = doneToday.has(u) ? "heute schon eingetragen" : d ? `zuletzt ${fmtDate(d)}: ${sets.map(setText).join(", ")}` : "";
+        const hint = ""; // nur der Name (Wunsch 21.11.)
         return { value: u, hint, fill: { sets } };
       });
   },
