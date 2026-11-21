@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"moos"}catch(e){}</script>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"moos"}catch(e){}document.documentElement.dataset.page=location.hash.slice(1)||"heute"</script>
 </head>
 <body>
   <!-- Icons: einmal definiert, überall per <use> eingesetzt -->
@@ -169,7 +169,9 @@
     </section>
 
     <section class="view" data-view="zyklus" hidden>
+      <div class="zyklus-box" data-zyklus></div>
       <div class="charts" data-charts="zyklus"></div>
+      <h3 class="section-h">Deine Perioden</h3>
       <div class="entries" data-list="zyklus" style="--accent: var(--c3)"></div>
     </section>
 
@@ -192,6 +194,7 @@
   <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="charts.js"></script>
+  <script src="zyklus.js"></script>
   <script type="module" src="data.js"></script>
 </body>
 </html>

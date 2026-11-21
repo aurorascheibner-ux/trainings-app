@@ -240,8 +240,32 @@ async function load(table) {
   return data;
 }
 
+// Tages-Check im Zyklus: eine Zeile pro Tag (Blutung + angetippte Beschwerden)
+let tagOk = true;
+async function loadTags() {
+  const { data, error } = await db.from("zyklus_tag").select("*").order("datum", { ascending: false }).limit(3000);
+  tagOk = !error;
+  if (error) console.warn("zyklus_tag", error.message);
+  cache.zyklus_tag = data || [];
+}
+
+async function saveTag(datum, rec, id) {
+  const leer = !rec.blutung && !(rec.symptome || []).length;
+  let res;
+  if (id && leer) res = await db.from("zyklus_tag").delete().eq("id", id);
+  else if (id) res = await db.from("zyklus_tag").update(rec).eq("id", id);
+  else if (!leer) res = await db.from("zyklus_tag").insert({ datum, ...rec });
+  if (res && res.error) { toast("Speichern hat nicht geklappt."); console.error(res.error); }
+  await loadTags();
+}
+
+function renderZyklus() {
+  if (!window.TBZyklus) return;
+  try { window.TBZyklus.render({ cache, tagOk, openForm, saveTag }); } catch (e) { console.error("Zyklus", e); }
+}
+
 async function refreshAll() {
-  await Promise.all(Object.keys(TABLES).map(load));
+  await Promise.all([...Object.keys(TABLES).map(load), loadTags()]);
   renderAll();
 }
 
@@ -250,6 +274,7 @@ function renderAll() {
   ["ernaehrung", "zyklus", "befinden"].forEach((v) => renderList($(`[data-list="${v}"]`), v));
   renderToday();
   renderCharts();
+  renderZyklus();
 }
 
 function renderCharts() {
