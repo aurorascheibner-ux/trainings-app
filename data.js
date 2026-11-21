@@ -404,6 +404,9 @@ function renderToday() {
 
   const open = (cache.befinden || []).find((r) => !r.datum_bis && r.status !== "gut");
   const lastB = (cache.befinden || [])[0];
+  // Symbol auf der Kachel je Zustand (Wunsch 21.11.)
+  const zustand = open ? open.status : lastB ? "gut" : null;
+  $("#befinden-ico").setAttribute("href", { krank: "#i-krank", verletzt: "#i-verletzt", erschoepft: "#i-erschoepft", gut: "#i-gut" }[zustand] || "#i-befinden");
   $('[data-sum="befinden"]').textContent = open
     ? `${TABLES.befinden.title(open)} seit ${fmtDate(open.datum_von)}`
     : lastB?.energie_1_5 ? `Energie ${lastB.energie_1_5}/5` : "alles gut";

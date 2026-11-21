@@ -66,6 +66,12 @@ body {
 [data-page="zyklus"]     { --tint: #d9728f; --tint-a: 13%; }
 [data-page="befinden"]   { --tint: #8fa3e6; --tint-a: 12%; }
 
+/* Kacheln auf "Heute" im Ton ihrer Seite (Wunsch 21.11.) */
+.tile[data-tile="training"]   { --tint: #e0a050; --tint-a: 30%; }
+.tile[data-tile="ernaehrung"] { --tint: #8fc27a; --tint-a: 30%; }
+.tile[data-tile="zyklus"]     { --tint: #e0708f; --tint-a: 32%; }
+.tile[data-tile="befinden"]   { --tint: #8fa3e6; --tint-a: 30%; }
+
 /* weiche Farbflecken hinter dem Glas, damit es nach Glas aussieht */
 .glow {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -383,7 +389,7 @@ main { max-width: 560px; margin: 0 auto; }
 .z-ring-card { padding: 18px 18px 16px; text-align: center; }
 .z-ring { width: min(260px, 72vw); height: auto; display: block; margin: 0 auto; overflow: visible; }
 .z-ring path { stroke-linecap: butt; }
-.z-mark { fill: #fff; stroke: rgba(0,0,0,.25); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(255,255,255,.7)); }
+.z-mark { fill: #fff; stroke: rgba(0,0,0,.35); stroke-width: 1.5; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(255,255,255,.6)); }
 .z-r-lbl { fill: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-family: var(--sans); }
 .z-r-day { fill: var(--text); font-size: 56px; font-family: var(--serif); font-weight: 500; }
 .z-r-phase { font-size: 15px; font-weight: 800; font-family: var(--sans); }
