@@ -249,7 +249,15 @@ function renderAll() {
   renderTraining();
   ["ernaehrung", "zyklus", "befinden"].forEach((v) => renderList($(`[data-list="${v}"]`), v));
   renderToday();
+  renderCharts();
 }
+
+function renderCharts() {
+  if (!window.TBCharts) return;
+  const view = (location.hash.replace("#", "") || "heute");
+  try { window.TBCharts.render(cache, view, sport); } catch (e) { console.error("Grafik", e); }
+}
+window.addEventListener("hashchange", () => setTimeout(renderCharts, 0));
 
 function groupKraft(rows) {
   const groups = [];
@@ -305,10 +313,13 @@ $$(".chip").forEach((c) => c.addEventListener("click", () => {
   sport = c.dataset.sport;
   try { localStorage.setItem("sport", sport); } catch {}
   renderTraining();
+  renderCharts();
 }));
 
 // ---------- Heute ----------
 function cycleInfo() {
+  // gleiche Phasen-Logik wie die Grafiken (Lutealphase läuft weiter, wenn die Periode auf sich warten lässt)
+  if (window.TBCharts) { try { return window.TBCharts.zyklusHeute(cache); } catch (e) { console.error(e); } }
   const rows = (cache.zyklus || []).slice().sort((a, b) => a.periode_start.localeCompare(b.periode_start));
   if (!rows.length) return null;
   const starts = rows.map((r) => r.periode_start);
@@ -327,6 +338,14 @@ function cycleInfo() {
   else phase = "Periode erwartet";
   return { day, len, phase, next: Math.max(0, len - day + 1) };
 }
+
+// kurzer Satz je Phase: was das für Training und Essen heißt
+const PHASE_TIPP = {
+  Periode: "Training nach Gefühl: lockere Technik oder kurze Einheiten sind okay. Beim Essen auf Erhaltung, kein Defizit, eisenreich essen.",
+  Follikelphase: "Gute Zeit für Kraft und schwere Boulder, du erholst dich schneller. Essen ganz normal nach Plan.",
+  Eisprung: "Kraft ist oft am höchsten, aber gründlich aufwärmen, die Bänder sind lockerer. Essen normal, Eiweiß über den Tag verteilen.",
+  Lutealphase: "Eher Volumen und Technik statt Maximalversuche, Läufe nach Puls. Du brauchst etwa 150 kcal mehr, Hunger ist normal.",
+};
 
 function renderToday() {
   const t = today();
@@ -352,7 +371,10 @@ function renderToday() {
     $("#cycle-dot").setAttribute("cx", p.x);
     $("#cycle-dot").setAttribute("cy", p.y);
     $("#cycle-done").setAttribute("stroke-dasharray", `${frac * 100} 100`);
-    $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
+    const tip = $("#cycle-tip");
+    tip.hidden = !PHASE_TIPP[c.phase];
+    tip.textContent = PHASE_TIPP[c.phase] || "";
+    $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
   }
 
   const open = (cache.befinden || []).find((r) => !r.datum_bis && r.status !== "gut");
