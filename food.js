@@ -182,6 +182,7 @@
     const field = (name, label, val = "", cls = "half", mode = ' inputmode="decimal"') =>
       `<label class="field ${cls}"><span>${label}</span><input type="text" name="nl_${name}" value="${esc(val)}"${mode}></label>`;
     box.innerHTML = `<p class="small"><strong>Neues Lebensmittel</strong><br><span class="muted">Trag ab, was auf der Packung steht, immer <b>pro 100 g</b>. Danach findet die App es bei der Suche und beim Scannen sofort.</span></p>
+      <label class="btn ghost small-btn nl-photo"><svg class="ico" aria-hidden="true"><use href="#i-scan"/></svg> Nährwerte fotografieren<input type="file" accept="image/*" capture="environment" data-nl-photo hidden></label>
       <div class="more-grid">
         ${field("name", "Name", pre.name || form.elements.lebensmittel.value.trim(), "full", "")}
         ${field("brand", "Marke (optional)", pre.brand || "", "half", "")}
@@ -195,6 +196,119 @@
     const first = box.querySelector(pre.name ? '[name="nl_kcal"]' : '[name="nl_name"]');
     if (first) first.focus();
     status(pre.code ? "Barcode " + pre.code + " ist neu für die App." : "Neues Lebensmittel anlegen.");
+  }
+
+  // ---------- Nährwerttabelle per Foto ablesen (läuft nur auf dem Handy, Tesseract) ----------
+  const TESS = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  let tessLoad = null;
+  function loadTess() {
+    if (window.Tesseract) return Promise.resolve();
+    return (tessLoad ||= new Promise((ok, fail) => {
+      const sc = document.createElement("script");
+      sc.src = TESS; sc.onload = ok; sc.onerror = () => { tessLoad = null; fail(new Error("laden")); };
+      document.head.appendChild(sc);
+    }));
+  }
+  // Foto verkleinern und in Graustufen, damit es schneller und sicherer erkannt wird
+  async function prepImage(img, size) {
+    const k = Math.min(1, size / Math.max(img.width, img.height)); // große Handyfotos verkleinern: schneller, Schrift in guter Größe
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const g = c.getContext("2d");
+    g.filter = "grayscale(1)";
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
+  // Text einer Nährwerttabelle → Werte pro 100 g (erste Zahl nach dem Namen = Spalte „pro 100 g“)
+  function parseLabel(text) {
+    const lines = text.replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const n = (v) => Number(String(v).replace(",", "."));
+    // typische Lesefehler in Zahlen: O→0, l/I→1
+    const fix = (l) => l.replace(/(?<=\d)[oO](?=[\d,.\sg])|(?<=[\s<])[oO](?=[,.]\d)/g, "0").replace(/(?<=\d)[lI](?=\d)|(?<=\s)[lI](?=[,.]\d)/g, "1");
+    // Erste Zahl = Spalte „pro 100 g“. Die Texterkennung liest das „g“ oft als „9“ („5,49“ statt „5,4 g“).
+    const firstG = (l) => {
+      const m = fix(l).match(/(\d{1,3})(?:[.,](\d{1,3}))?\s*(g\b|9\b|9g\b)?/i);
+      if (!m) return null;
+      let [, a, b = "", unit = ""] = m;
+      if (/^9g$/i.test(unit) || (unit === "9" && b)) unit = "g";
+      else if (!unit && b.length >= 2 && b.endsWith("9")) b = b.slice(0, -1); // 5,49 → 5,4
+      else if (!unit && !b && a.length >= 2 && a.endsWith("9")) a = a.slice(0, -1); // 339 → 33
+      if (!b && Number(a) > 100 && a.endsWith("9")) a = a.slice(0, -1); // 129g → 12 g
+      return n(b ? `${a}.${b}` : a);
+    };
+    const out = {};
+    const KEYS = [
+      ["ges", /ges[äa]tt|fetts[äa]ur/i],
+      ["zucker", /zucker|sugar/i],
+      ["ballast", /ballast|fibre|fiber/i],
+      ["kh", /kohlen|carbo/i],
+      ["p", /eiwei|protein/i],
+      ["fett", /\bfett\b|^fett|\bfat\b/i],
+    ];
+    // kcal: alle Kandidaten sammeln (pro 100 g und pro Portion), unten den passenden wählen
+    const kc = [];
+    for (const l of lines.map(fix)) {
+      for (const m of l.matchAll(/(\d{2,4}(?:[.,]\d)?)\s*k\s*cal/gi)) kc.push(Math.round(n(m[1])));
+      for (const m of l.matchAll(/\d{2,4}\s*k\s*[jJ\]]\s*[\/|]\s*(\d{2,3})\b/g)) kc.push(Math.round(n(m[1]))); // „1590 kJ / 380“
+      if (!kc.length) for (const m of l.matchAll(/(\d{2,4}(?:[.,]\d)?)\s*k\s*j/gi)) kc.push(Math.round(n(m[1]) / 4.184));
+    }
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      for (const [k, re] of KEYS) {
+        if (out[k] != null || !re.test(l)) continue;
+        if (k === "fett" && /ges[äa]tt|s[äa]ur|unges/i.test(l)) continue;
+        const rest = l.replace(re, "§").split("§").slice(1).join(" ");
+        const v = firstG(rest) ?? firstG(lines[i + 1] || "");
+        if (v != null && v <= 100) out[k] = v;
+        break;
+      }
+    }
+    // kcal: erste Zahl, außer die Makros passen klar besser zu einer anderen (z. B. Portionsspalte zuerst gelesen)
+    const good = kc.filter((v) => v >= 1 && v <= 950);
+    if (good.length) {
+      out.kcal = good[0];
+      if (out.fett != null && out.kh != null && out.p != null) {
+        const est = 9 * out.fett + 4 * out.kh + 4 * out.p + 2 * (out.ballast || 0);
+        out.kcal = good.reduce((a, b) => (Math.abs(b - est) < Math.abs(a - est) ? b : a));
+        if (Math.abs(out.kcal - est) > est * 0.3) out.kcal = Math.round(est); // gelesene Zahl passt gar nicht: aus den Nährwerten rechnen
+      }
+    }
+    // Plausibilität: Teilmengen dürfen nicht größer sein als das Ganze
+    if (out.ges != null && (out.fett != null ? out.ges > out.fett : out.ges > 60)) delete out.ges;
+    if (out.zucker != null && out.kh != null && out.zucker > out.kh) delete out.zucker;
+    return out;
+  }
+
+  async function readPhoto(file) {
+    const box = form.querySelector("[data-off-pick]"), msg = box.querySelector("[data-nl-msg]");
+    msg.textContent = "Lese die Tabelle … beim ersten Mal dauert es etwas länger.";
+    let v = {};
+    try {
+      await loadTess();
+      const img = await createImageBitmap(file);
+      const w = await window.Tesseract.createWorker("deu");
+      await w.setParameters({ tessedit_pageseg_mode: "3" }); // automatische Aufteilung, klappt bei Tabellen besser
+      // Erst normal groß; wenn wenig erkannt wird (z. B. sehr nah fotografiert), noch einmal kleiner versuchen
+      for (const size of [1600, 1000, 700]) {
+        const r = parseLabel((await w.recognize(await prepImage(img, size))).data.text || "");
+        if (Object.keys(r).length > Object.keys(v).length) v = r;
+        if (Object.keys(v).length >= 5) break;
+      }
+      await w.terminate();
+    } catch {
+      msg.textContent = "Texterkennung gerade nicht möglich (Internet?). Bitte die Werte abtippen.";
+      return;
+    }
+    let found = 0;
+    for (const [k] of NUTRI) {
+      const inp = box.querySelector(`[name="nl_${k}"]`);
+      if (!inp) continue;
+      inp.classList.remove("ocr");
+      if (v[k] != null) { inp.value = String(v[k]).replace(".", ","); inp.classList.add("ocr"); found++; }
+    }
+    msg.textContent = found
+      ? `${found} von ${NUTRI.length} Werten erkannt (markiert). Bitte kurz mit der Packung vergleichen.`
+      : "Keine Werte erkannt. Fotografier die Tabelle möglichst gerade und hell, oder tipp die Werte ab.";
   }
 
   async function saveNew() {
@@ -316,7 +430,11 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.target.name && e.target.name.startsWith("nl_")) { e.preventDefault(); saveNew(); }
   });
+  document.addEventListener("change", (e) => {
+    if (e.target.matches("[data-nl-photo]") && e.target.files[0]) { readPhoto(e.target.files[0]); e.target.value = ""; }
+  });
+  document.addEventListener("input", (e) => { if (e.target.classList && e.target.classList.contains("ocr")) e.target.classList.remove("ocr"); });
   document.getElementById("entry")?.addEventListener("close", stopScan);
 
-  window.TBFood = { attach, saved };
+  window.TBFood = { attach, saved, parseLabel };
 })();
