@@ -281,6 +281,14 @@ main { max-width: 560px; margin: 0 auto; }
 .btn.danger { flex: 1 1 100%; background: rgba(220,110,110,.14); color: #f0b4ae; box-shadow: none; }
 .small-btn { min-height: 40px; padding: 8px 14px; margin-top: 14px; }
 .sets .small-btn { margin-top: 0; justify-self: start; }
+.uebungen { flex: 1 1 100%; display: grid; gap: 14px; }
+.ueb-block { display: flex; flex-wrap: wrap; gap: 10px; }
+.ueb-block > .field { flex: 1 1 100%; }
+.uebungen .ueb-block + .ueb-block { border-top: 1px solid rgba(255, 255, 255, .16); padding-top: 12px; }
+.ueb-head { flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; }
+.ueb-head .label { margin: 0; font-weight: 700; }
+.ueb-head .icon-btn { width: 36px; height: 36px; border-radius: 12px; font-size: .85rem; }
+#add-ueb { flex: 1 1 100%; }
 .sheet-actions { position: sticky; bottom: -20px; margin: 16px -20px -20px; padding: 12px 20px 20px; background: linear-gradient(transparent, var(--bg2) 35%); }
 .sheet-actions .btn { width: 100%; }
 
@@ -356,6 +364,10 @@ main { max-width: 560px; margin: 0 auto; }
 .c-est { fill: var(--text); }
 .c-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .c-scroll::-webkit-scrollbar { display: none; }
+.c-yrow { display: flex; align-items: flex-start; }
+.c-yrow .c-scroll { flex: 1; min-width: 0; }
+.c-yaxis { flex: none; display: block; }
+.c-unit { font-weight: 700; }
 .c-empty, .c-hint { margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
 .c-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: .75rem; color: var(--muted); }
 .c-legend span { display: inline-flex; align-items: center; gap: 6px; }

@@ -16,7 +16,7 @@ const fmtDate = (s) => {
   const diff = daysBetween(s, today());
   if (diff === 0) return "Heute";
   if (diff === 1) return "Gestern";
-  return d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" });
+  return d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", ...(d.getFullYear() !== new Date().getFullYear() && { year: "numeric" }) });
 };
 const fmtNum = (n, digits = 0) => n == null || n === "" ? "" : Number(n).toLocaleString("de-DE", { maximumFractionDigits: digits });
 // "45" → 45 Min., "45:30" → 45 Min. 30 Sek., "1:05:00" → 1 Std. 5 Min.
@@ -485,10 +485,15 @@ const SUGGEST = {
 };
 
 function showSuggestions(input) {
-  const list = input.form && input.form.querySelector(`.combo-list[data-for="${input.name}"]`);
+  const next = input.closest("label")?.nextElementSibling;
+  const list = next && next.matches(`.combo-list[data-for="${input.name}"]`) ? next : input.form && input.form.querySelector(`.combo-list[data-for="${input.name}"]`);
   if (!list) return;
   const q = input.value.trim().toLowerCase();
-  const all = SUGGEST[input.dataset.suggest](input.form);
+  let all = SUGGEST[input.dataset.suggest](input.form);
+  if (input.dataset.suggest === "uebung") { // schon in einem anderen Block eingetragene Übungen nicht nochmal vorschlagen
+    const other = $$('[data-ueb] [name="uebung"]', input.form).filter((x) => x !== input).map((x) => x.value.trim().toLowerCase());
+    all = all.filter((o) => !other.includes(o.value.toLowerCase()));
+  }
   const isGrade = input.dataset.suggest === "grad";
   const items = (q ? all.filter((o) => o.value.toLowerCase().includes(q) && o.value.toLowerCase() !== q) : all).slice(0, isGrade ? 12 : 8);
   if (!items.length) { list.hidden = true; return; }
@@ -501,16 +506,17 @@ function showSuggestions(input) {
 function pickSuggestion(list, i) {
   const o = list._items[i];
   const form = list.closest("form");
-  form.elements[list.dataset.for].value = o.value;
+  const input = list.previousElementSibling?.querySelector(`[name="${list.dataset.for}"]`) || form.elements[list.dataset.for];
+  input.value = o.value;
   list.hidden = true;
   const f = o.fill || {};
   for (const k of ["menge", "kcal", "protein_g", "kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"]) {
     if (k in f && form.elements[k] && !form.elements[k].value) form.elements[k].value = f[k] ?? "";
   }
   if (f.sets && f.sets.length && !(editing && editing.rows)) {
-    const box = form.querySelector(".sets");
+    const box = (list.closest("[data-ueb]") || form).querySelector(".sets");
     box.querySelectorAll("[data-set]").forEach((el) => el.replaceWith());
-    box.querySelector("#add-set").insertAdjacentHTML("beforebegin", f.sets.map(setRowHTML).join(""));
+    box.querySelector(".add-set").insertAdjacentHTML("beforebegin", f.sets.map(setRowHTML).join(""));
   }
 }
 
@@ -520,6 +526,7 @@ document.addEventListener("click", (e) => {
   const item = e.target.closest(".combo-item");
   if (item) return pickSuggestion(item.closest(".combo-list"), Number(item.dataset.i));
   if (!(e.target.dataset && e.target.dataset.suggest)) document.querySelectorAll(".combo-list").forEach((l) => (l.hidden = true));
+  else showSuggestions(e.target); // Antippen eines schon aktiven Felds zeigt die Vorschläge wieder
 });
 
 // ---------- Formular ----------
@@ -549,7 +556,16 @@ function setRowHTML(r = {}, i = 0) {
   </div>`;
 }
 
-function renumberSets() { $$("[data-set] .set-no").forEach((el, i) => (el.textContent = i + 1)); }
+function renumberSets(scope) { $$("[data-set] .set-no", scope).forEach((el, i) => (el.textContent = i + 1)); }
+
+function uebBlockHTML(f, name, sets, i) {
+  return `<div class="ueb-block" data-ueb>
+    ${i ? `<div class="ueb-head"><span class="label">Übung ${i + 1}</span><button type="button" class="icon-btn" data-remove-ueb aria-label="Übung entfernen">✕</button></div>` : ""}
+    ${fieldHTML(f, name).replace(' id="f-uebung"', i ? ` id="f-uebung-${i}"` : ' id="f-uebung"')}
+    <div class="sets"><p class="label">Sätze <span class="muted small">(bei Halteübungen Sek. statt Wdh.)</span></p>${sets.map(setRowHTML).join("")}
+      <button type="button" class="btn ghost small-btn add-set">+ Satz</button></div>
+  </div>`;
+}
 
 function openForm(table, rows = null) {
   const t = TABLES[table];
@@ -561,19 +577,16 @@ function openForm(table, rows = null) {
   // Zusätzliche Nährwerte zum Aufklappen, damit das Formular kurz bleibt
   const extras = t.fields.filter((f) => f.extra);
   let html = t.fields.map((f) => {
+    // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
+    if (t.sets && f.name === "uebung") return `<div class="uebungen">${uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);
     if (f !== extras[0]) return "";
     const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
     return `<details class="more"${open ? " open" : ""}><summary>Kohlenhydrate, Fett, Ballaststoffe</summary><div class="more-grid">${extras.map((x) => fieldHTML(x, base[x.name])).join("")}</div></details>`;
   }).join("");
-  if (t.sets) {
-    const sets = rows || [{}, {}, {}];
-    html += `<div class="sets"><p class="label">Sätze <span class="muted small">(bei Halteübungen Sek. statt Wdh.)</span></p>${sets.map(setRowHTML).join("")}
-      <button type="button" class="btn ghost small-btn" id="add-set">+ Satz</button></div>`;
-  }
   if (rows) html += `<button type="button" class="btn danger" id="delete-entry">Eintrag löschen</button>`;
   $("#entry-fields").innerHTML = html;
-  if (table === "ernaehrung" && window.TBFood) window.TBFood.attach($("#entry-form"));
+  if (table === "ernaehrung" && window.TBFood) window.TBFood.attach($("#entry-form"), db);
   $("#entry-msg").textContent = "";
   if (!dlg.open) dlg.showModal();
 }
@@ -594,15 +607,26 @@ dlg.addEventListener("click", async (e) => {
   if (e.target === dlg || e.target.closest("[data-close]")) return dlg.close();
   const pick = e.target.closest("[data-pick]");
   if (pick) return openForm(pick.dataset.pick);
-  if (e.target.closest("#add-set")) {
-    const rows = $$("[data-set]");
+  const addSet = e.target.closest(".add-set");
+  if (addSet) {
+    const box = addSet.closest(".sets"), rows = $$("[data-set]", box);
     const last = rows[rows.length - 1];
     const prev = last ? { wdh: $('[name="wdh"]', last).value, gewicht_kg: $('[name="gewicht_kg"]', last).value, dauer_s: $('[name="dauer_s"]', last).value } : {};
-    e.target.closest("#add-set").insertAdjacentHTML("beforebegin", setRowHTML(prev, rows.length));
+    addSet.insertAdjacentHTML("beforebegin", setRowHTML(prev, rows.length));
     return;
   }
   const rm = e.target.closest("[data-remove-set]");
-  if (rm) { rm.closest("[data-set]").remove(); renumberSets(); return; }
+  if (rm) { const box = rm.closest(".sets"); rm.closest("[data-set]").remove(); renumberSets(box); return; }
+  if (e.target.closest("#add-ueb")) {
+    const list = $(".uebungen"), n = $$("[data-ueb]", list).length;
+    list.insertAdjacentHTML("beforeend", uebBlockHTML(TABLES.kraft.fields.find((f) => f.name === "uebung"), "", [{}, {}, {}], n));
+    const inp = list.lastElementChild.querySelector('[name="uebung"]');
+    inp.scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => inp.focus(), 0); // erst nach dem Klick, sonst schließt der Klick die Vorschläge gleich wieder
+    return;
+  }
+  const rmU = e.target.closest("[data-remove-ueb]");
+  if (rmU) { rmU.closest("[data-ueb]").remove(); $$("[data-ueb] .ueb-head .label").forEach((el, i) => (el.textContent = `Übung ${i + 2}`)); return; }
   if (e.target.closest("#delete-entry")) {
     if (!confirmDelete()) return;
     const { table, rows } = editing;
@@ -643,6 +667,7 @@ $("#entry-form").addEventListener("submit", async (e) => {
   const msg = $("#entry-msg");
   const rec = {};
   for (const f of t.fields) {
+    if (t.sets && f.name === "uebung") continue; // steht je Übungs-Block, siehe unten
     const v = readValue(f, form);
     if (f.required && v == null) { msg.textContent = `Bitte „${f.label}“ ausfüllen.`; return; }
     if (typeof v === "number" && isNaN(v)) { msg.textContent = `„${f.label}“ ist keine gültige Zahl.`; return; }
@@ -656,10 +681,17 @@ $("#entry-form").addEventListener("submit", async (e) => {
   msg.textContent = "Speichere …";
   let error;
   if (t.sets) {
-    const sets = $$("[data-set]", form).map((row) => ({
-      wdh: row.querySelector('[name="wdh"]').value, gewicht_kg: row.querySelector('[name="gewicht_kg"]').value, dauer_s: row.querySelector('[name="dauer_s"]').value,
-    })).filter((s) => s.wdh || s.gewicht_kg || s.dauer_s)
-      .map((s, i) => ({ ...rec, satz: i + 1, wdh: s.wdh ? Number(s.wdh) : null, gewicht_kg: s.gewicht_kg ? Number(String(s.gewicht_kg).replace(",", ".")) : null, dauer_s: s.dauer_s ? Number(s.dauer_s) : null }));
+    const sets = [];
+    for (const [bi, block] of $$("[data-ueb]", form).entries()) {
+      const uebung = $('[name="uebung"]', block).value.trim();
+      const bs = $$("[data-set]", block).map((row) => ({
+        wdh: row.querySelector('[name="wdh"]').value, gewicht_kg: row.querySelector('[name="gewicht_kg"]').value, dauer_s: row.querySelector('[name="dauer_s"]').value,
+      })).filter((s) => s.wdh || s.gewicht_kg || s.dauer_s);
+      if (!uebung && !bs.length && bi > 0) continue; // leere weitere Übung einfach ignorieren
+      if (!uebung) { msg.textContent = bi ? `Bitte bei Übung ${bi + 1} den Namen ausfüllen.` : "Bitte „Übung“ ausfüllen."; return; }
+      if (!bs.length) { msg.textContent = `Bitte bei „${uebung}“ mindestens einen Satz ausfüllen.`; return; }
+      bs.forEach((s, i) => sets.push({ ...rec, uebung, satz: i + 1, wdh: s.wdh ? Number(s.wdh) : null, gewicht_kg: s.gewicht_kg ? Number(String(s.gewicht_kg).replace(",", ".")) : null, dauer_s: s.dauer_s ? Number(s.dauer_s) : null }));
+    }
     if (!sets.length) { msg.textContent = "Bitte mindestens einen Satz ausfüllen."; return; }
     ({ error } = await db.from(table).insert(sets));
     if (!error && rows) ({ error } = await db.from(table).delete().in("id", rows.map((r) => r.id)));
@@ -675,6 +707,7 @@ $("#entry-form").addEventListener("submit", async (e) => {
     if (!error) toast("Gespeichert, aber ohne Kohlenhydrate und Fette: dafür fehlt noch die SQL-Datei.");
   }
   if (error) { console.error(error); msg.textContent = "Speichern hat nicht geklappt: " + error.message; return; }
+  if (table === "ernaehrung" && window.TBFood) window.TBFood.saved(); // gewähltes Produkt in „Meine Lebensmittel“ merken
   dlg.close();
   toast("Gespeichert ✓");
   await load(table);

@@ -5,7 +5,7 @@
   const DAY = 864e5;
   const pd = (s) => new Date(s + "T00:00:00Z");
   const iso = (d) => new Date(d).toISOString().slice(0, 10);
-  const fmtD = (d) => new Date(d).toLocaleDateString("de-DE", { day: "numeric", month: "short", timeZone: "UTC" });
+  const fmtD = (d) => { const t = new Date(d); return t.toLocaleDateString("de-DE", { day: "numeric", month: "short", ...(t.getUTCFullYear() !== new Date().getFullYear() && { year: "2-digit" }), timeZone: "UTC" }); };
   const dm = (t) => { const d = new Date(t); return d.getUTCDate() + "." + (d.getUTCMonth() + 1) + "."; };
   const mmss = (s) => Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
   const todayUTC = () => { const n = new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); };
@@ -241,16 +241,20 @@
       return { d, date: pd(d), rs, est };
     });
     const nMax = d3.max(groups, (g) => g.rs.length) || 1, need = (nMax * 24 + (nMax - 1) * 3 + (norm ? 22 : 0)) / 0.8;
-    const W0 = Math.max(280, Math.round(el.clientWidth) || 360), W = Math.max(W0, Math.ceil(40 + dates.length * need)), H = 230;
+    // Die Achse links bleibt stehen, auch wenn man die Balken seitlich wischt
+    const AX = 36, W0 = Math.max(244, (Math.round(el.clientWidth) || 360) - AX), W = Math.max(W0, Math.ceil(10 + dates.length * need)), H = 230;
     const vmax = d3.max([...groups.flatMap((g) => g.rs.map(val)), ...groups.map((g) => g.est || 0), norm ? norm.hi : 0]) || 1;
     const t = niceTicks(0, vmax * 1.2);
-    const wrap = d3.select(el).append("div").attr("class", W > W0 ? "c-scroll" : null);
-    const svg = wrap.append("svg").attr("width", W > W0 ? W : "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const row = d3.select(el).append("div").attr("class", "c-yrow");
+    const ax = row.append("svg").attr("class", "c-yaxis").attr("width", AX).attr("height", H).attr("viewBox", `0 0 ${AX} ${H}`);
+    const wrap = row.append("div").attr("class", "c-scroll");
+    const svg = wrap.append("svg").attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
     if (W > W0) requestAnimationFrame(() => { wrap.node().scrollLeft = W; });
-    const m = { t: 24, r: 6, b: 26, l: 32 };
+    const m = { t: 24, r: 6, b: 26, l: 2 };
     const y = d3.scaleLinear(t.domain, [H - m.b, m.t]);
     const x = d3.scaleBand(dates, [m.l, W - m.r]).paddingInner(0.2).paddingOuter(0.06);
-    t.ticks.forEach((v) => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("class", "c-grid"); svg.append("text").attr("x", m.l - 5).attr("y", y(v)).attr("dy", "0.32em").attr("text-anchor", "end").attr("class", "c-axis").text(v); });
+    t.ticks.forEach((v) => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("class", "c-grid"); ax.append("text").attr("x", AX - 5).attr("y", y(v)).attr("dy", "0.32em").attr("text-anchor", "end").attr("class", "c-axis").text(fnum(v)); });
+    ax.append("text").attr("x", AX - 5).attr("y", 9).attr("text-anchor", "end").attr("class", "c-axis c-unit").text(mode === "kg" ? "kg" : mode === "sec" ? "Sek." : "Wdh.");
     if (norm) svg.append("rect").attr("x", m.l).attr("width", W - m.r - m.l).attr("y", y(norm.hi)).attr("height", y(norm.lo) - y(norm.hi)).style("fill", norm.color).style("opacity", 0.18);
     const T = tipOf(el), base = y(0);
     let anySick = false;
@@ -295,10 +299,11 @@
   function kUebungen(parent) {
     const rows = C.kraft || [];
     if (!rows.length) return;
-    const PIN = [["Bankdrücken", 0], ["Kniebeugen", 2]]; // feste Plätze (Wunsch 20.11.)
+    // Feste Reihenfolge (Wunsch 21.11.), alle anderen Übungen danach in der Reihenfolge, in der sie dazukamen
+    const ORDER = ["Bankdrücken", "Rumänisches Kreuzheben", "Klimmzug", "Beine anziehen im Liegestütz", "Kniebeugen"];
     const firstSeen = new Map(); [...rows].sort((a, b) => a.datum.localeCompare(b.datum)).forEach((r) => { if (!firstSeen.has(r.uebung)) firstSeen.set(r.uebung, r.datum); });
-    const ulist = [...firstSeen.keys()].filter((u) => !PIN.some((p) => p[0] === u));
-    PIN.filter((p) => firstSeen.has(p[0])).forEach(([u, i]) => ulist.splice(Math.min(i, ulist.length), 0, u));
+    const rank = (u) => { const i = ORDER.indexOf(u); return i < 0 ? ORDER.length : i; };
+    const ulist = [...firstSeen.keys()].sort((a, b) => rank(a) - rank(b)); // stabil: Rest bleibt nach erstem Auftauchen
     const todo = [];
     ulist.forEach((u) => {
       const rs = rows.filter((r) => r.uebung === u), sec = rs.some((r) => Number(r.dauer_s) > 0 && !Number(r.wdh)), kg = !sec && rs.some((r) => Number(r.gewicht_kg) > 0);
