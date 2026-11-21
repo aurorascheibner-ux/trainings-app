@@ -578,7 +578,10 @@ function openForm(table, rows = null, preset = null) {
   const extras = t.fields.filter((f) => f.extra);
   let html = t.fields.map((f) => {
     // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
-    if (t.sets && f.name === "uebung") return `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
+    if (t.sets && f.name === "uebung") return (rows ? "" : `<details class="diktat"${preset ? "" : " open"}><summary>Diktieren oder einfügen</summary>
+      <label class="field"><textarea name="diktat_text" rows="4" placeholder="z. B. Bankdrücken 3 mal 55, 9 mal 45, 3 mal 55. Kniebeuge 10 mal 50 …"></textarea></label>
+      <p class="muted small">Tipp aufs Mikrofon deiner Tastatur und sprich wie in einer Nachricht. Oder füg deine Notiz ein. Dann „Übernehmen“.</p>
+      <button type="button" class="btn small-btn" id="diktat-go">Übernehmen</button><p class="small" data-diktat-msg></p></details>`) + `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);
     if (f !== extras[0]) return "";
     const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
@@ -623,6 +626,21 @@ dlg.addEventListener("click", async (e) => {
     const inp = list.lastElementChild.querySelector('[name="uebung"]');
     inp.scrollIntoView({ block: "center", behavior: "smooth" });
     setTimeout(() => inp.focus(), 0); // erst nach dem Klick, sonst schließt der Klick die Vorschläge gleich wieder
+    return;
+  }
+  if (e.target.closest("#diktat-go") && window.TBDiktat) {
+    const box = e.target.closest(".diktat"), msg = $("[data-diktat-msg]", box);
+    const known = [...new Set((cache.kraft || []).map((r) => r.uebung))];
+    const r = window.TBDiktat.parse($('[name="diktat_text"]', box).value, known);
+    if (!r.uebungen.length) { msg.textContent = "Keine Übung mit Sätzen erkannt. Nenn die Übung und die Sätze, z. B. „Kniebeuge 10 mal 50“."; return; }
+    const f = TABLES.kraft.fields.find((x) => x.name === "uebung");
+    $(".uebungen").innerHTML = r.uebungen.map((u, i) => uebBlockHTML(f, u.u, u.sets, i)).join("");
+    const n = r.uebungen.reduce((s, u) => s + u.sets.length, 0);
+    msg.textContent = `${r.uebungen.length} ${r.uebungen.length === 1 ? "Übung" : "Übungen"} mit ${n} Sätzen übernommen, bitte unten kurz prüfen.`
+      + (r.ohneSaetze.length ? ` Ohne Sätze: ${r.ohneSaetze.join(", ")}.` : "")
+      + (r.unklar.length ? ` Nicht verstanden: „${r.unklar.join("“, „")}“.` : "");
+    box.open = false;
+    box.insertAdjacentElement("afterend", msg);
     return;
   }
   const rmU = e.target.closest("[data-remove-ueb]");
