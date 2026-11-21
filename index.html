@@ -50,6 +50,28 @@
         <path d="M16 27S4 20 4 11.8A6.3 6.3 0 0 1 16 9a6.3 6.3 0 0 1 12 2.8C28 20 16 27 16 27Z" fill="var(--fill)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
         <path d="M7.5 16.5h4.2l2-3.5 3 7 2.2-3.5h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </symbol>
+      <!-- Befinden je Zustand -->
+      <symbol id="i-krank" viewBox="0 0 32 32">
+        <path d="M13 5.5a3 3 0 0 1 6 0v12.2a6 6 0 1 1-6 0Z" fill="var(--fill)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="16" cy="22.5" r="2.6" fill="currentColor"/>
+        <path d="M16 20V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M22 8h4M22 12h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="i-verletzt" viewBox="0 0 32 32">
+        <rect x="3.5" y="11" width="25" height="10" rx="5" transform="rotate(-40 16 16)" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+        <rect x="11.5" y="12.5" width="9" height="7" rx="1.5" transform="rotate(-40 16 16)" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="15" cy="15" r=".9" fill="currentColor"/><circle cx="17" cy="17" r=".9" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-erschoepft" viewBox="0 0 32 32">
+        <rect x="4" y="10" width="21" height="12" rx="3" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M27.5 14v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <rect x="7" y="13" width="4" height="6" rx="1" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-gut" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="11.5" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="12" cy="13.5" r="1.4" fill="currentColor"/><circle cx="20" cy="13.5" r="1.4" fill="currentColor"/>
+        <path d="M10.5 18.5c1.4 2.6 3.3 3.8 5.5 3.8s4.1-1.2 5.5-3.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+      </symbol>
       <symbol id="i-einstellungen" viewBox="0 0 32 32">
         <path d="M6 9h12M24 9h2M6 16h4M16 16h10M6 23h14M26 23h0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         <circle cx="21" cy="9" r="3" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
@@ -145,7 +167,7 @@
           <strong>Zyklus</strong><span class="muted small" data-sum="zyklus">noch nichts eingetragen</span>
         </a>
         <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
-          <span class="ico-wrap"><svg class="ico"><use href="#i-befinden"/></svg></span>
+          <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
           <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
         </a>
       </div>
