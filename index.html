@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Trainingsbuch</title>
   <meta name="description" content="Auroras Trainingsbuch: Training, Ernährung, Zyklus und Befinden eintragen.">
-  <meta name="theme-color" content="#3b4030">
+  <meta name="theme-color" content="#3f4430">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"moos"}catch(e){}</script>
 </head>
 <body>
   <!-- Icons: einmal definiert, überall per <use> eingesetzt -->
@@ -49,15 +50,37 @@
         <path d="M16 27S4 20 4 11.8A6.3 6.3 0 0 1 16 9a6.3 6.3 0 0 1 12 2.8C28 20 16 27 16 27Z" fill="var(--fill)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
         <path d="M7.5 16.5h4.2l2-3.5 3 7 2.2-3.5h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </symbol>
+      <symbol id="i-einstellungen" viewBox="0 0 32 32">
+        <path d="M6 9h12M24 9h2M6 16h4M16 16h10M6 23h14M26 23h0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="21" cy="9" r="3" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="13" cy="16" r="3" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="23" cy="23" r="3" fill="var(--fill)" stroke="currentColor" stroke-width="1.8"/>
+      </symbol>
     </defs>
   </svg>
 
   <div class="glow" aria-hidden="true"></div>
 
   <header class="topbar">
-    <p id="subtitle" class="date"></p>
-    <h1 id="title">Heute</h1>
+    <div>
+      <p id="subtitle" class="date"></p>
+      <h1 id="title">Heute</h1>
+    </div>
+    <button id="open-settings" class="icon-btn glass" type="button" aria-label="Einstellungen">
+      <svg class="ico"><use href="#i-einstellungen"/></svg>
+    </button>
   </header>
+
+  <dialog id="settings" class="sheet glass">
+    <form method="dialog">
+      <div class="sheet-head">
+        <h2>Optik</h2>
+        <button class="icon-btn" value="close" aria-label="Schließen">✕</button>
+      </div>
+      <p class="muted small">Wähle dein Farbkonzept. Die Wahl wird auf diesem Handy gespeichert.</p>
+      <div id="theme-list" class="theme-list"></div>
+    </form>
+  </dialog>
 
   <main id="views">
     <!-- Heute -->
