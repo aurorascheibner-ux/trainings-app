@@ -44,7 +44,7 @@ const TABLES = {
     fields: [
       { name: "datum", label: "Datum", type: "date", required: true },
       { name: "dauer_min", label: "Dauer (Min.)", type: "number", half: true },
-      { name: "max_grad", label: "Schwerster Grad", type: "text", placeholder: "7a", half: true },
+      { name: "max_grad", label: "Schwerster Grad", type: "text", placeholder: "7a", half: true, suggest: "grad" },
       { name: "tops", label: "Geschafft", type: "text", placeholder: "7a:4;7b:1" },
       { name: "projekte", label: "Projekte (versucht)", type: "text", placeholder: "7b:2" },
       { name: "avg_hf", label: "Ø Puls", type: "number", half: true },
@@ -58,7 +58,7 @@ const TABLES = {
     label: "Kraft", dateField: "datum", view: "training", sets: true,
     fields: [
       { name: "datum", label: "Datum", type: "date", required: true },
-      { name: "uebung", label: "Übung", type: "text", required: true, list: "uebungen", placeholder: "Kniebeuge" },
+      { name: "uebung", label: "Übung", type: "text", required: true, placeholder: "Kniebeuge", suggest: "uebung" },
       NOTIZ,
     ],
   },
@@ -100,7 +100,7 @@ const TABLES = {
     label: "Essen", dateField: "datum", view: "ernaehrung",
     fields: [
       { name: "datum", label: "Datum", type: "date", required: true },
-      { name: "lebensmittel", label: "Was hast du gegessen?", type: "text", required: true, placeholder: "Haferflocken mit Skyr" },
+      { name: "lebensmittel", label: "Was hast du gegessen?", type: "text", required: true, placeholder: "Haferflocken mit Skyr", suggest: "essen" },
       { name: "menge", label: "Menge", type: "text", placeholder: "1 Schüssel" },
       { name: "kcal", label: "kcal", type: "number", half: true },
       { name: "protein_g", label: "Eiweiß (g)", type: "number", step: "0.1", half: true },
@@ -234,7 +234,7 @@ $("#logout").addEventListener("click", async () => {
 async function load(table) {
   const t = TABLES[table];
   const { data, error } = await db.from(table).select("*")
-    .order(t.dateField, { ascending: false }).order("created_at", { ascending: false }).limit(t.sets ? 150 : 40);
+    .order(t.dateField, { ascending: false }).order("created_at", { ascending: false }).limit(3000);
   if (error) { toast("Laden hat nicht geklappt."); console.error(error); return cache[table] || []; }
   cache[table] = data;
   return data;
@@ -249,7 +249,15 @@ function renderAll() {
   renderTraining();
   ["ernaehrung", "zyklus", "befinden"].forEach((v) => renderList($(`[data-list="${v}"]`), v));
   renderToday();
+  renderCharts();
 }
+
+function renderCharts() {
+  if (!window.TBCharts) return;
+  const view = (location.hash.replace("#", "") || "heute");
+  try { window.TBCharts.render(cache, view, sport); } catch (e) { console.error("Grafik", e); }
+}
+window.addEventListener("hashchange", () => setTimeout(renderCharts, 0));
 
 function groupKraft(rows) {
   const groups = [];
@@ -305,10 +313,13 @@ $$(".chip").forEach((c) => c.addEventListener("click", () => {
   sport = c.dataset.sport;
   try { localStorage.setItem("sport", sport); } catch {}
   renderTraining();
+  renderCharts();
 }));
 
 // ---------- Heute ----------
 function cycleInfo() {
+  // gleiche Phasen-Logik wie die Grafiken (Lutealphase läuft weiter, wenn die Periode auf sich warten lässt)
+  if (window.TBCharts) { try { return window.TBCharts.zyklusHeute(cache); } catch (e) { console.error(e); } }
   const rows = (cache.zyklus || []).slice().sort((a, b) => a.periode_start.localeCompare(b.periode_start));
   if (!rows.length) return null;
   const starts = rows.map((r) => r.periode_start);
@@ -327,6 +338,14 @@ function cycleInfo() {
   else phase = "Periode erwartet";
   return { day, len, phase, next: Math.max(0, len - day + 1) };
 }
+
+// kurzer Satz je Phase: was das für Training und Essen heißt
+const PHASE_TIPP = {
+  Periode: "Training nach Gefühl: lockere Technik oder kurze Einheiten sind okay. Beim Essen auf Erhaltung, kein Defizit, eisenreich essen.",
+  Follikelphase: "Gute Zeit für Kraft und schwere Boulder, du erholst dich schneller. Essen ganz normal nach Plan.",
+  Eisprung: "Kraft ist oft am höchsten, aber gründlich aufwärmen, die Bänder sind lockerer. Essen normal, Eiweiß über den Tag verteilen.",
+  Lutealphase: "Eher Volumen und Technik statt Maximalversuche, Läufe nach Puls. Du brauchst etwa 150 kcal mehr, Hunger ist normal.",
+};
 
 function renderToday() {
   const t = today();
@@ -352,7 +371,10 @@ function renderToday() {
     $("#cycle-dot").setAttribute("cx", p.x);
     $("#cycle-dot").setAttribute("cy", p.y);
     $("#cycle-done").setAttribute("stroke-dasharray", `${frac * 100} 100`);
-    $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
+    const tip = $("#cycle-tip");
+    tip.hidden = !PHASE_TIPP[c.phase];
+    tip.textContent = PHASE_TIPP[c.phase] || "";
+    $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
   }
 
   const open = (cache.befinden || []).find((r) => !r.datum_bis && r.status !== "gut");
@@ -361,6 +383,111 @@ function renderToday() {
     ? `${TABLES.befinden.title(open)} seit ${fmtDate(open.datum_von)}`
     : lastB?.energie_1_5 ? `Energie ${lastB.energie_1_5}/5` : "alles gut";
 }
+
+// ---------- Vorschläge, sortiert nach Wahrscheinlichkeit ----------
+// Je öfter und je kürzer her, desto weiter oben. Bei Übungen zählt zusätzlich,
+// was du sonst zusammen mit den heute schon eingetragenen Übungen machst.
+// Beim Essen zählt, was du sonst um diese Uhrzeit isst.
+const GRADE = ["5a","5a+","5b","5b+","5c","5c+","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b"];
+const recency = (dateStr, halfLife = 30) => Math.pow(0.5, Math.max(0, daysBetween(dateStr, today())) / halfLife);
+
+const SUGGEST = {
+  uebung(form) {
+    const rows = cache.kraft || [];
+    const dateOf = form.elements.datum?.value || today();
+    const sessions = new Map(); // datum -> Set(uebung)
+    rows.forEach((r) => { if (!sessions.has(r.datum)) sessions.set(r.datum, new Set()); sessions.get(r.datum).add(r.uebung); });
+    const doneToday = sessions.get(dateOf) || new Set();
+    const score = new Map();
+    for (const [datum, set] of sessions) {
+      if (datum === dateOf) continue;
+      const w = recency(datum);
+      const overlap = [...doneToday].filter((u) => set.has(u)).length;
+      for (const u of set) score.set(u, (score.get(u) || 0) + w * (1 + 2 * overlap));
+    }
+    doneToday.forEach((u) => { if (!score.has(u)) score.set(u, 0); });
+    const lastSets = (u) => {
+      const l = rows.filter((r) => r.uebung === u && r.datum !== dateOf);
+      const d = l.reduce((m, r) => (r.datum > m ? r.datum : m), "");
+      return { d, sets: l.filter((r) => r.datum === d).sort((a, b) => (a.satz ?? 0) - (b.satz ?? 0)) };
+    };
+    return [...score.entries()]
+      .map(([u, sc]) => ({ u, sc: doneToday.has(u) ? sc / 100 - 1 : sc }))
+      .sort((a, b) => b.sc - a.sc)
+      .map(({ u }) => {
+        const { d, sets } = lastSets(u);
+        const hint = ""; // nur der Name (Wunsch 21.11.)
+        return { value: u, hint, fill: { sets } };
+      });
+  },
+  essen() {
+    const rows = cache.ernaehrung || [];
+    const hourNow = new Date().getHours();
+    const score = new Map(), lastRow = new Map();
+    for (const r of rows) {
+      const h = r.created_at ? new Date(r.created_at).getHours() : hourNow;
+      const dh = Math.min(Math.abs(h - hourNow), 24 - Math.abs(h - hourNow));
+      const w = recency(r.datum, 45) * (0.4 + Math.exp(-dh / 3));
+      score.set(r.lebensmittel, (score.get(r.lebensmittel) || 0) + w);
+      if (!lastRow.has(r.lebensmittel)) lastRow.set(r.lebensmittel, r); // neueste zuerst geladen
+    }
+    return [...score.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => {
+      const r = lastRow.get(name);
+      return {
+        value: name,
+        hint: [r.menge, r.kcal != null && `${r.kcal} kcal`, r.protein_g != null && `${fmtNum(r.protein_g, 1)} g Eiweiß`].filter(Boolean).join(" · "),
+        fill: { menge: r.menge, kcal: r.kcal, protein_g: r.protein_g },
+      };
+    });
+  },
+  grad() {
+    const rows = cache.bouldern || [];
+    const score = new Map();
+    rows.forEach((r) => r.max_grad && score.set(r.max_grad, (score.get(r.max_grad) || 0) + recency(r.datum, 21)));
+    const known = [...score.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
+    const center = known.length ? GRADE.indexOf(known[0]) : GRADE.indexOf("7a");
+    const rest = GRADE.filter((g) => !score.has(g)).sort((a, b) => Math.abs(GRADE.indexOf(a) - center) - Math.abs(GRADE.indexOf(b) - center) || GRADE.indexOf(b) - GRADE.indexOf(a)); // nahe an deinem Niveau zuerst
+    return [...known, ...rest].map((g) => ({ value: g }));
+  },
+};
+
+function showSuggestions(input) {
+  const list = input.form && input.form.querySelector(`.combo-list[data-for="${input.name}"]`);
+  if (!list) return;
+  const q = input.value.trim().toLowerCase();
+  const all = SUGGEST[input.dataset.suggest](input.form);
+  const isGrade = input.dataset.suggest === "grad";
+  const items = (q ? all.filter((o) => o.value.toLowerCase().includes(q) && o.value.toLowerCase() !== q) : all).slice(0, isGrade ? 12 : 8);
+  if (!items.length) { list.hidden = true; return; }
+  list._items = items;
+  list.innerHTML = items.map((o, i) => `<button type="button" class="combo-item" data-i="${i}"><strong>${esc(o.value)}</strong>${o.hint ? `<span class="muted small">${esc(o.hint)}</span>` : ""}</button>`).join("");
+  list.classList.toggle("grades", isGrade);
+  list.hidden = false;
+}
+
+function pickSuggestion(list, i) {
+  const o = list._items[i];
+  const form = list.closest("form");
+  form.elements[list.dataset.for].value = o.value;
+  list.hidden = true;
+  const f = o.fill || {};
+  for (const k of ["menge", "kcal", "protein_g"]) {
+    if (k in f && form.elements[k] && !form.elements[k].value) form.elements[k].value = f[k] ?? "";
+  }
+  if (f.sets && f.sets.length && !(editing && editing.rows)) {
+    const box = form.querySelector(".sets");
+    box.querySelectorAll("[data-set]").forEach((el) => el.replaceWith());
+    box.querySelector("#add-set").insertAdjacentHTML("beforebegin", f.sets.map(setRowHTML).join(""));
+  }
+}
+
+document.addEventListener("focusin", (e) => { if (e.target.dataset && e.target.dataset.suggest) showSuggestions(e.target); });
+document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.suggest) showSuggestions(e.target); });
+document.addEventListener("click", (e) => {
+  const item = e.target.closest(".combo-item");
+  if (item) return pickSuggestion(item.closest(".combo-list"), Number(item.dataset.i));
+  if (!(e.target.dataset && e.target.dataset.suggest)) document.querySelectorAll(".combo-list").forEach((l) => (l.hidden = true));
+});
 
 // ---------- Formular ----------
 const dlg = $("#entry");
@@ -376,7 +503,7 @@ function fieldHTML(f, value) {
   const type = f.type === "duration" || f.type === "number" ? "text" : f.type; // Text statt Zahl, damit Komma geht
   const mode = f.type === "number" ? ` inputmode="decimal"` : f.type === "duration" ? ` inputmode="numeric"` : "";
   const val = f.type === "duration" ? (v === "" ? "" : fmtDuration(v)) : v;
-  return `<label class="${cls}"><span>${f.label}</span><input type="${type}" name="${f.name}" id="${id}" value="${esc(val)}"${mode}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ""}${f.required ? " required" : ""}${f.list ? ` list="${f.list}"` : ""}></label>`;
+  return `<label class="${cls}"><span>${f.label}</span><input type="${type}" name="${f.name}" id="${id}" value="${esc(val)}"${mode}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ""}${f.required ? " required" : ""}${f.suggest ? ` data-suggest="${f.suggest}" autocomplete="off"` : ""}></label>${f.suggest ? `<div class="combo-list" data-for="${f.name}" hidden></div>` : ""}`;
 }
 
 function setRowHTML(r = {}, i = 0) {
@@ -400,8 +527,6 @@ function openForm(table, rows = null) {
   const base = rows ? rows[0] : { [t.dateField]: today(), zweck: "freizeit", status: "krank" };
   let html = t.fields.map((f) => fieldHTML(f, base[f.name])).join("");
   if (t.sets) {
-    const uebungen = [...new Set((cache.kraft || []).map((r) => r.uebung))];
-    html += `<datalist id="uebungen">${uebungen.map((u) => `<option value="${esc(u)}">`).join("")}</datalist>`;
     const sets = rows || [{}, {}, {}];
     html += `<div class="sets"><p class="label">Sätze <span class="muted small">(bei Halteübungen Sek. statt Wdh.)</span></p>${sets.map(setRowHTML).join("")}
       <button type="button" class="btn ghost small-btn" id="add-set">+ Satz</button></div>`;
