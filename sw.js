@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien bereit, damit sie installierbar ist
 // und auch ohne Netz startet. Bei jeder Änderung an der App VERSION erhöhen.
-const VERSION = "v7";
+const VERSION = "v8";
 const FILES = [
   "./",
   "index.html",
@@ -16,7 +16,8 @@ const FILES = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)));
+  // "reload": am Browser-Zwischenspeicher vorbei, sonst landen alte Dateien in der neuen Version
+  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" })))));
   self.skipWaiting();
 });
 
@@ -33,8 +34,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   // Nur die App-Dateien selbst; Anfragen an die Datenbank nie zwischenspeichern.
   if (event.request.method !== "GET" || new URL(event.request.url).origin !== location.origin) return;
+  // GitHub Pages lässt Dateien 10 Minuten im Browser liegen. "no-cache" fragt trotzdem jedes Mal
+  // kurz nach, ob es etwas Neues gibt, damit nie alte und neue Dateien gemischt werden.
+  const req = event.request.mode === "navigate" ? event.request.url : event.request;
   event.respondWith(
-    fetch(event.request)
+    fetch(req, { cache: "no-cache" })
       .then((res) => {
         const copy = res.clone();
         caches.open(VERSION).then((c) => c.put(event.request, copy));
