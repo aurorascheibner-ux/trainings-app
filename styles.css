@@ -500,3 +500,10 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .p-warn { margin: 6px 0; font-size: .82rem; color: #ffb4a6; }
 .plan .p-start { margin-top: 10px; width: 100%; }
 
+/* Diktieren */
+.diktat { flex: 1 1 100%; border-radius: 16px; padding: 10px 12px; background: rgba(255, 255, 255, .06); }
+.diktat summary { cursor: pointer; font-weight: 700; }
+.diktat textarea { width: 100%; margin-top: 8px; box-sizing: border-box; }
+.diktat .btn { margin-top: 6px; }
+[data-diktat-msg] { flex: 1 1 100%; margin: 0; color: var(--hi); }
+
