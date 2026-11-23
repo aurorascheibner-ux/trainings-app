@@ -85,6 +85,7 @@
       <div class="off-list" data-off-list hidden></div>
       <div class="off-pick glass" data-off-pick hidden></div>`);
     loadOwn();
+    rebase(); // beim Bearbeiten: vorhandene Menge und Werte
   }
 
   function status(t) { const s = form && form.querySelector("[data-off-status]"); if (s) s.textContent = t; }
@@ -185,6 +186,7 @@
     if (picked.kcal != null) el.kcal.value = Math.round((picked.kcal * g) / 100);
     const put = (name, per100) => { if (el[name]) el[name].value = per100 == null ? "" : String(Math.round((per100 * g) / 10) / 10).replace(".", ","); };
     put("protein_g", picked.p); put("kh_g", picked.kh); put("zucker_g", picked.zucker); put("fett_g", picked.fett); put("fett_ges_g", picked.ges); put("ballast_g", picked.ballast);
+    rebase();
     if (el.notiz && (!el.notiz.value || /^(Werte (von Open Food Facts|aus deinen Lebensmitteln)|Richtwerte Grundnahrungsmittel)$/.test(el.notiz.value))) el.notiz.value = picked.mine ? "Werte aus deinen Lebensmitteln" : picked.basis ? "Richtwerte Grundnahrungsmittel" : "Werte von Open Food Facts";
   }
 
@@ -438,10 +440,43 @@
     if (o) { o.hidden = true; o.querySelector("video").srcObject = null; o.querySelector(".scan-manual").reset(); }
   }
 
+  // ---------- Menge ändern: Nährwerte mitrechnen ----------
+  // Merkt sich Menge und Werte (z. B. beim Bearbeiten). Wird die Menge geändert, z. B. „150 g“ → „200 g“
+  // oder „1 Stück“ → „2 Stück“, werden alle Nährwerte im selben Verhältnis angepasst.
+  const VALS = ["kcal", "protein_g", "kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"];
+  let mBase = null;
+  function parseMenge(v) {
+    const m = String(v || "").trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+    if (!m) return null;
+    const n = Number(m[1].replace(",", "."));
+    return n > 0 ? { n, unit: norm(m[2]).replace(/\s+/g, " ").trim() } : null;
+  }
+  function rebase() {
+    if (!form || !form.elements.menge) return (mBase = null);
+    const m = parseMenge(form.elements.menge.value);
+    const vals = {}; VALS.forEach((k) => { if (form.elements[k]) vals[k] = num(form.elements[k].value); });
+    mBase = m && VALS.some((k) => vals[k] != null) ? { m, vals } : null;
+  }
+  function scaleToMenge() {
+    if (!form || !mBase) return;
+    const m = parseMenge(form.elements.menge.value);
+    if (!m || (m.unit && mBase.m.unit && m.unit !== mBase.m.unit)) return; // andere Einheit: lieber nicht raten
+    const f = m.n / mBase.m.n, el = form.elements;
+    VALS.forEach((k) => {
+      const v = mBase.vals[k];
+      if (el[k] && v != null) el[k].value = k === "kcal" ? Math.round(v * f) : String(Math.round(v * f * 10) / 10).replace(".", ",");
+    });
+    status(f === 1 ? "" : "Nährwerte an die neue Menge angepasst.");
+  }
+
   // ---------- Bedienung ----------
   document.addEventListener("input", (e) => {
     onInput(e);
     if (e.target.name === "off_gramm") calc();
+    if (form && e.target.form === form) {
+      if (e.target.name === "menge") scaleToMenge();
+      else if (VALS.includes(e.target.name)) rebase(); // Werte von Hand geändert: ab jetzt davon ausgehen
+    }
     if (form && e.target === form.elements.lebensmittel && picked && e.target.value.trim() !== picked.name) {
       picked = null;
       const b = form.querySelector("[data-off-pick]"); if (b) b.hidden = true;
@@ -462,7 +497,7 @@
     if (e.target.closest("[data-nl-save]")) return saveNew();
     if (e.target.closest("[data-nl-cancel]")) { const b = form.querySelector("[data-off-pick]"); b.hidden = true; b.innerHTML = ""; return status("Oder tippen, dann kommen Produkte dazu."); }
     // Eigene Einträge aus der Auswahlliste gewählt: Produktvorschläge schließen
-    if (e.target.closest('.combo-list[data-for="lebensmittel"] .combo-item')) { hideList(); clearTimeout(timer); picked = null; const b = form && form.querySelector("[data-off-pick]"); if (b) b.hidden = true; }
+    if (e.target.closest('.combo-list[data-for="lebensmittel"] .combo-item')) { setTimeout(rebase, 0); hideList(); clearTimeout(timer); picked = null; const b = form && form.querySelector("[data-off-pick]"); if (b) b.hidden = true; }
   });
   // Enter in den Feldern für ein neues Lebensmittel soll nicht das ganze Essen speichern
   document.addEventListener("keydown", (e) => {
