@@ -508,3 +508,6 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 [data-diktat-msg] { flex: 1 1 100%; margin: 0; color: var(--hi); }
 #diktat-mic.on { background: var(--hi); color: #111; }
 .plan.p-link { cursor: pointer; }
+.c-big.over { color: var(--warn, #e07a5f); }
+.c-sub { margin: 2px 0 8px; opacity: .75; font-size: .85rem; }
+.c-est-val { font-size: 10px; font-weight: 700; }

@@ -276,6 +276,7 @@
         const cx = right + 12, cy = y(g.est);
         onTip(svg.append("path").attr("d", `M${cx},${cy - 5}L${cx + 5},${cy}L${cx},${cy + 5}L${cx - 5},${cy}Z`).attr("class", "c-est"), T,
           (ev) => T.show(ev, fmtD(g.date), [{ text: "Geschätztes Max: " + (norm.bw ? "+" : "") + g.est + " kg" + (norm.bw ? " Zusatzgewicht" : "") }]));
+        svg.append("text").attr("x", cx).attr("y", cy - 8).attr("text-anchor", "middle").attr("class", "c-val c-est-val").text((norm.bw ? "+" : "") + g.est);
       }
       // Datum und Zyklusphase als kleine Pille darunter
       if (ph) svg.append("rect").attr("x", gx + gw / 2 - 26).attr("y", H - 19).attr("width", 52).attr("height", 16).attr("rx", 8).style("fill", BANDC[ph]).style("opacity", 0.35);
@@ -423,7 +424,9 @@
     // Richtwerte: gesättigte Fette höchstens 10 % der Energie, Zucker höchstens etwa 50 g, Ballaststoffe mind. 30 g (DGE/WHO)
     const satMax = Math.round((base.kcal * 0.1) / 9), sugMax = 50, fibMin = 30;
     const body = card(parent, "Heutiges Ziel", why);
-    body.appendChild(E("div", "c-big", fnum(base.kcal) + " kcal"));
+    const rest = base.kcal - kc;
+    body.appendChild(E("div", "c-big" + (rest < 0 ? " over" : ""), rest >= 0 ? fnum(rest) + " kcal übrig" : fnum(-rest) + " kcal drüber"));
+    body.appendChild(E("p", "c-sub", "Ziel heute " + fnum(base.kcal) + " kcal · gegessen " + fnum(kc) + " kcal"));
     const bar = (lbl, have, goal, unit, kind) => {
       const r = E("div", "c-bar" + (kind === "max" && have > goal ? " over" : "")), t = E("div", "t");
       t.append(E("b", "", lbl), E("span", "", fnum(have) + (kind === "max" ? " von max. " : kind === "min" ? " von mind. " : " von ") + fnum(goal) + " " + unit));
