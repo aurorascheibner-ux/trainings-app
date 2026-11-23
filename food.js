@@ -5,6 +5,7 @@
 
 (function () {
   const SEARCH = "https://de.openfoodfacts.org/cgi/search.pl";
+  const SEARCH2 = "https://world.openfoodfacts.org/cgi/search.pl";
   const PRODUCT = "https://world.openfoodfacts.org/api/v2/product/";
   const FIELDS = "code,product_name,product_name_de,brands,quantity,serving_quantity,nutriments";
   const TABLE = "lebensmittel";
@@ -93,10 +94,16 @@
     if (!list) {
       status("Suche Produkte …");
       try {
-        const url = `${SEARCH}?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=8&sort_by=unique_scans_n&fields=${FIELDS}`;
-        let r = await fetch(url);
-        if (r.status === 503) { await new Promise((ok) => setTimeout(ok, 1500)); r = await fetch(url); } // Open Food Facts ist manchmal kurz überlastet
-        if (!r.ok) throw new Error(r.status);
+        const qs = `?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=8&sort_by=unique_scans_n&fields=${FIELDS}`;
+        // Open Food Facts ist öfter kurz überlastet: bis zu 3 Versuche, abwechselnd zwei Server
+        let r = null;
+        for (const [i, host] of [SEARCH, SEARCH2, SEARCH].entries()) {
+          if (i) { status("Open Food Facts ist gerade langsam, ich versuche es nochmal …"); await new Promise((ok) => setTimeout(ok, 1200 * i)); }
+          if (!form || form.elements.lebensmittel.value.trim() !== q) return;
+          try { r = await fetch(host + qs); } catch { r = null; }
+          if (r && r.ok) break;
+        }
+        if (!r || !r.ok) throw new Error(r ? r.status : "net");
         const j = await r.json();
         list = (j.products || []).map(simple).filter((x) => x.kcal != null);
         cache.set(q.toLowerCase(), list);
@@ -104,7 +111,7 @@
         lastQ = "";
         if (!form || form.elements.lebensmittel.value.trim() !== q) return;
         if (!ownMatches(q).length) hideList();
-        status("Produktsuche gerade nicht erreichbar. Barcode und eigene Lebensmittel gehen trotzdem.");
+        status("Open Food Facts ist gerade überlastet, das liegt nicht an dir. In ein paar Minuten nochmal tippen. Deine eigenen Lebensmittel und der Barcode gehen trotzdem.");
         return;
       }
     }

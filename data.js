@@ -580,7 +580,8 @@ function openForm(table, rows = null, preset = null) {
     // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
     if (t.sets && f.name === "uebung") return (rows ? "" : `<details class="diktat"${preset ? "" : " open"}><summary>Diktieren oder einfügen</summary>
       <label class="field"><textarea name="diktat_text" rows="4" placeholder="z. B. Bankdrücken 3 mal 55, 9 mal 45, 3 mal 55. Kniebeuge 10 mal 50 …"></textarea></label>
-      <p class="muted small">Tipp aufs Mikrofon deiner Tastatur und sprich wie in einer Nachricht. Oder füg deine Notiz ein. Dann „Übernehmen“.</p>
+      <p class="muted small">Tipp auf „Sprechen“ und sag dein Training wie in einer Nachricht. Oder füg deine Notiz ein. Dann „Übernehmen“.</p>
+      <button type="button" class="btn ghost small-btn" id="diktat-mic" hidden>🎤 Sprechen</button>
       <button type="button" class="btn small-btn" id="diktat-go">Übernehmen</button><p class="small" data-diktat-msg></p></details>`) + `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);
     if (f !== extras[0]) return "";
@@ -628,7 +629,9 @@ dlg.addEventListener("click", async (e) => {
     setTimeout(() => inp.focus(), 0); // erst nach dem Klick, sonst schließt der Klick die Vorschläge gleich wieder
     return;
   }
+  if (e.target.closest("#diktat-mic")) { toggleMic(e.target.closest("#diktat-mic")); return; }
   if (e.target.closest("#diktat-go") && window.TBDiktat) {
+    stopMic();
     const box = e.target.closest(".diktat"), msg = $("[data-diktat-msg]", box);
     const known = [...new Set((cache.kraft || []).map((r) => r.uebung))];
     const r = window.TBDiktat.parse($('[name="diktat_text"]', box).value, known);
@@ -753,7 +756,48 @@ $("#fab").addEventListener("click", () => {
   openPicker();
 });
 
-// Beim Zurückkehren in die App neu laden (z. B. wenn Claude etwas eingetragen hat)
-document.addEventListener("visibilitychange", () => { if (!document.hidden && session) refreshAll(); });
+// Spracheingabe direkt in der App (Chrome auf Android), statt über das Tastatur-Mikrofon
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let mic = null;
+function stopMic() { if (mic) { mic.want = false; try { mic.rec.stop(); } catch (_) {} } }
+function toggleMic(btn) {
+  if (mic && mic.want) return stopMic();
+  const box = btn.closest(".diktat"), ta = $('[name="diktat_text"]', box), msg = $("[data-diktat-msg]", box);
+  const rec = new SpeechRec();
+  rec.lang = "de-DE";
+  rec.interimResults = true;
+  rec.continuous = false; // auf Android zuverlässiger; nach einer Sprechpause startet es von selbst neu
+  const before = () => (ta.value.trim() ? ta.value.trim() + " " : "");
+  let base = before();
+  mic = { rec, want: true };
+  const me = mic;
+  rec.onresult = (ev) => {
+    let fin = "", tmp = "";
+    for (const r of ev.results) (r.isFinal ? (fin += r[0].transcript) : (tmp += r[0].transcript));
+    ta.value = base + fin + tmp;
+    if (fin) base = ta.value.trim() + " ";
+  };
+  rec.onerror = (ev) => {
+    if (ev.error === "no-speech" || ev.error === "aborted") return;
+    me.want = false;
+    msg.textContent = ev.error === "not-allowed" || ev.error === "service-not-allowed"
+      ? "Die App darf das Mikrofon nicht benutzen. Erlaube es in den Website-Einstellungen (Schloss-Symbol neben der Adresse)."
+      : "Spracheingabe hat nicht geklappt (" + ev.error + "). Du kannst den Text auch eintippen oder einfügen.";
+  };
+  rec.onend = () => {
+    if (me.want && mic === me) { base = before(); try { rec.start(); return; } catch (_) {} }
+    btn.textContent = "🎤 Sprechen"; btn.classList.remove("on");
+    if (mic === me) mic = null;
+  };
+  try { rec.start(); } catch (_) { mic = null; return; }
+  btn.textContent = "■ Fertig gesprochen"; btn.classList.add("on");
+  msg.textContent = "Ich höre zu …";
+}
+// Knopf nur zeigen, wenn der Browser Spracheingabe kann
+new MutationObserver(() => { const b = $("#diktat-mic"); if (b && SpeechRec) b.hidden = false; }).observe(document.body, { childList: true, subtree: true });
+$("#entry").addEventListener("close", stopMic);
+
+// Beim Zurückkehren in die App neu laden (z. B. wenn Claude etwas eingetragen hat), aber nicht mitten im Eintragen
+document.addEventListener("visibilitychange", () => { if (!document.hidden && session && !$("#entry").open) refreshAll(); });
 
 initAuth();

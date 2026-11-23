@@ -506,4 +506,25 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .diktat textarea { width: 100%; margin-top: 8px; box-sizing: border-box; }
 .diktat .btn { margin-top: 6px; }
 [data-diktat-msg] { flex: 1 1 100%; margin: 0; color: var(--hi); }
+#diktat-mic.on { background: var(--hi); color: #111; }
+.plan.p-link { cursor: pointer; }
+.c-big.over { color: var(--warn, #e07a5f); }
+.c-sub { margin: 2px 0 8px; opacity: .75; font-size: .85rem; }
+.c-est-val { font-size: 10px; font-weight: 700; }
 
+/* Deine Ziele */
+.z-head, .z-row { display: grid; grid-template-columns: 1.15fr .8fr 1fr 1fr; gap: 6px; align-items: start; }
+.z-head { font-size: .72rem; opacity: .7; margin: 6px 0 2px; }
+.z-row { padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, .1); font-size: .85rem; }
+.z-row b { font-weight: 700; line-height: 1.2; }
+.z-row small { display: block; opacity: .7; font-size: .72rem; margin-top: 2px; }
+.z-now { opacity: .85; }
+.z-end { color: var(--hi); font-weight: 700; }
+.z-end small { color: var(--text); font-weight: 400; }
+
+/* Passt noch heute */
+.v-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.v-row { padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, .1); }
+.v-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.v-tag { font-size: .72rem; opacity: .7; white-space: nowrap; }
+.v-sub { font-size: .85rem; opacity: .85; margin-top: 2px; }

@@ -276,6 +276,7 @@
         const cx = right + 12, cy = y(g.est);
         onTip(svg.append("path").attr("d", `M${cx},${cy - 5}L${cx + 5},${cy}L${cx},${cy + 5}L${cx - 5},${cy}Z`).attr("class", "c-est"), T,
           (ev) => T.show(ev, fmtD(g.date), [{ text: "Geschätztes Max: " + (norm.bw ? "+" : "") + g.est + " kg" + (norm.bw ? " Zusatzgewicht" : "") }]));
+        svg.append("text").attr("x", cx).attr("y", cy - 8).attr("text-anchor", "middle").attr("class", "c-val c-est-val").text((norm.bw ? "+" : "") + g.est);
       }
       // Datum und Zyklusphase als kleine Pille darunter
       if (ph) svg.append("rect").attr("x", gx + gw / 2 - 26).attr("y", H - 19).attr("width", 52).attr("height", 16).attr("rx", 8).style("fill", BANDC[ph]).style("opacity", 0.35);
@@ -423,7 +424,9 @@
     // Richtwerte: gesättigte Fette höchstens 10 % der Energie, Zucker höchstens etwa 50 g, Ballaststoffe mind. 30 g (DGE/WHO)
     const satMax = Math.round((base.kcal * 0.1) / 9), sugMax = 50, fibMin = 30;
     const body = card(parent, "Heutiges Ziel", why);
-    body.appendChild(E("div", "c-big", fnum(base.kcal) + " kcal"));
+    const rest = base.kcal - kc;
+    body.appendChild(E("div", "c-big" + (rest < 0 ? " over" : ""), rest >= 0 ? fnum(rest) + " kcal übrig" : fnum(-rest) + " kcal drüber"));
+    body.appendChild(E("p", "c-sub", "Ziel heute " + fnum(base.kcal) + " kcal · gegessen " + fnum(kc) + " kcal"));
     const bar = (lbl, have, goal, unit, kind) => {
       const r = E("div", "c-bar" + (kind === "max" && have > goal ? " over" : "")), t = E("div", "t");
       t.append(E("b", "", lbl), E("span", "", fnum(have) + (kind === "max" ? " von max. " : kind === "min" ? " von mind. " : " von ") + fnum(goal) + " " + unit));
@@ -443,7 +446,63 @@
     const ok = Math.max(0, base.kcal - kc), op = Math.max(0, base.p - pr);
     const ohne = eat.length && eat.some((r) => r.kcal != null && r.kh_g == null) ? " Bei manchen Einträgen fehlen Kohlenhydrate und Fett, die zählen dort noch nicht mit." : "";
     body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") + ohne : "Noch nichts eingetragen."));
+    const ret = { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat };
     body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, 74 kg, etwa 18 % Körperfett (Waage), viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
+    return ret;
+  }
+
+  // ---------- Essen: was heute noch gut passt ----------
+  // Bewährte Klassiker (Portion, ca.-Werte), falls dein Verlauf nicht genug hergibt
+  const KLASSIKER = [
+    { n: "Magerquark", m: "250 g", kcal: 170, p: 30, b: 0 },
+    { n: "Skyr natur", m: "250 g", kcal: 160, p: 27, b: 0 },
+    { n: "Hüttenkäse", m: "200 g", kcal: 190, p: 24, b: 0 },
+    { n: "Linsen, gekocht", m: "200 g", kcal: 230, p: 18, b: 16 },
+    { n: "Edamame", m: "150 g", kcal: 180, p: 17, b: 8 },
+    { n: "Kichererbsen, gekocht", m: "150 g", kcal: 180, p: 10, b: 9 },
+    { n: "Haferflocken", m: "60 g", kcal: 220, p: 8, b: 6 },
+    { n: "Leinsamen, geschrotet", m: "2 EL (15 g)", kcal: 80, p: 3, b: 4 },
+    { n: "Himbeeren", m: "150 g", kcal: 60, p: 2, b: 7 },
+    { n: "Vollkornbrot", m: "2 Scheiben", kcal: 200, p: 7, b: 7 },
+    { n: "Eier", m: "2 Stück", kcal: 160, p: 13, b: 0 },
+  ];
+  function vorschlaege(parent, g) {
+    const needP = g.p > 5, needB = g.b > 3, kc = g.kcal;
+    const body = card(parent, "Passt noch heute", "Aus dem, was du sonst isst, passend zu dem, was heute noch fehlt");
+    if (!needP && !needB) { body.appendChild(E("p", "c-text", kc > 150 ? `Eiweiß und Ballaststoffe sind gedeckt. Die restlichen ${fnum(Math.round(kc))} kcal kannst du frei nutzen.` : "Für heute bist du gut versorgt.")); return; }
+    // Deine Lebensmittel: je Name der letzte Eintrag mit Werten, wie oft gegessen
+    const map = new Map(), heute = new Set(g.heute.map((r) => String(r.lebensmittel || "").toLowerCase()));
+    (C.ernaehrung || []).slice().sort((a, b) => String(a.datum).localeCompare(String(b.datum))).forEach((r) => {
+      const name = String(r.lebensmittel || "").trim(), key = name.toLowerCase();
+      if (!name || r.kcal == null || Number(r.kcal) <= 0 || heute.has(key)) return;
+      const o = map.get(key) || { n: name, anzahl: 0 };
+      Object.assign(o, { m: r.menge || "", kcal: Number(r.kcal), p: Number(r.protein_g) || 0, b: Number(r.ballast_g) || 0, eigen: true });
+      o.anzahl++; map.set(key, o);
+    });
+    const room = Math.max(kc, 0);
+    const score = (f) => {
+      const gain = (needP ? Math.min(f.p, g.p) / g.p : 0) + (needB ? Math.min(f.b, g.b) / g.b : 0);
+      if (gain < 0.08) return 0;
+      const zuviel = room > 0 ? Math.max(0, f.kcal - room) / room : f.kcal / 150; // passt es noch ins Budget?
+      return gain / (f.kcal / 400 + 0.3) / (1 + 2 * zuviel) * (f.eigen ? 1 + Math.min(f.anzahl, 5) * 0.1 : 1);
+    };
+    const eigene = [...map.values()].map((f) => ({ ...f, s: score(f) })).filter((f) => f.s > 0).sort((a, b) => b.s - a.s).slice(0, 3);
+    const names = new Set(eigene.map((f) => f.n.toLowerCase()));
+    const extra = KLASSIKER.filter((f) => !names.has(f.n.toLowerCase())).map((f) => ({ ...f, s: score(f) })).filter((f) => f.s > 0).sort((a, b) => b.s - a.s).slice(0, Math.max(2, 5 - eigene.length));
+    const fehlt = [needP && `${fnum(Math.round(g.p))} g Eiweiß`, needB && `${fnum(Math.round(g.b))} g Ballaststoffe`].filter(Boolean).join(" und ");
+    body.appendChild(E("p", "c-text", `Dir fehlen noch ${fehlt}${room > 0 ? `, bei ${fnum(Math.round(room))} kcal übrig` : ", die kcal sind aber schon erreicht, also eher leichte Sachen"}.`));
+    const list = E("div", "v-list");
+    const row = (f, tag) => {
+      const r = E("div", "v-row"), top = E("div", "v-top");
+      top.append(E("b", "", f.n), E("span", "v-tag", tag));
+      const gains = [f.p >= 1 && `+${fnum(Math.round(f.p))} g Eiweiß`, f.b >= 1 && `+${fnum(Math.round(f.b))} g Ballaststoffe`, `${fnum(Math.round(f.kcal))} kcal`].filter(Boolean).join(" · ");
+      r.append(top, E("div", "v-sub", (f.m ? f.m + ": " : "") + gains));
+      list.appendChild(r);
+    };
+    eigene.forEach((f) => row(f, f.anzahl > 1 ? `${f.anzahl}× gegessen` : "schon gegessen"));
+    extra.forEach((f) => row(f, "Idee"));
+    body.appendChild(list);
+    body.appendChild(E("p", "c-hint", "Mengen wie bei deinem letzten Eintrag. „Idee“ sind Klassiker mit viel Eiweiß oder Ballaststoffen, Werte ungefähr."));
   }
 
   // ---------- Verteilen auf die Tabs ----------
@@ -458,6 +517,7 @@
     if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche", "Eine Spalte pro Tag, ein Block pro Sportart. Tippen zeigt Details."));
     if (view === "training") {
       if (sport === "bouldern") { bGrad(card(box, "Schwerster Boulder pro Session")); bWoche(card(box, "Sessions pro Woche")); }
+      if ((sport === "kraft" || sport === "laufen") && P && P.ziele) P.ziele(box, cache);
       if (sport === "kraft" && P) P.kraft(box, cache);
       if (sport === "laufen" && P) P.laufen(box, cache);
       if (sport === "kraft") { kUebungen(box); kVol(card(box, "Volumen pro Training", "Summe aus Wiederholungen mal Gewicht über alle Sätze, in kg.")); }
@@ -465,7 +525,7 @@
       if (sport === "rad") { rWoche(card(box, "Radminuten pro Woche")); rPuls(card(box, "Puls pro Fahrt")); }
     }
     if (view === "zyklus") zyklusKarten(box);
-    if (view === "ernaehrung") tagesziel(box);
+    if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); }
   }
 
   window.TBCharts = { render, phasen, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
