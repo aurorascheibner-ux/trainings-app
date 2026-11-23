@@ -193,7 +193,10 @@
       const now = g.up ? g.w - step : g.w;
       const firstIn = g.up ? 0 : wps;
       const n = Math.max(1, 1 + Math.floor((ZIEL_WOCHEN - firstIn) / wps));
-      return { u: ex.u, now: kg(ex, now), next: kg(ex, now + step), nextWhen: wann(firstIn), end: kg(ex, now + n * step), endWhen: wann(firstIn + (n - 1) * wps) };
+      // Wiederholungen dazu: jetzt das aktuelle Ziel, nach jeder Steigerung wieder unten im Bereich anfangen
+      const pro = ex.side ? " pro Seite" : "";
+      const nowReps = g.up ? ex.hi : g.aim;
+      return { u: ex.u, now: `${kg(ex, now)}\n3\u00a0×\u00a0${nowReps}${pro}`, next: `${kg(ex, now + step)}\n3\u00a0×\u00a0${ex.lo}${pro}`, nextWhen: wann(firstIn), end: `${kg(ex, now + n * step)}\n3\u00a0×\u00a0${ex.lo}${pro}`, endWhen: wann(firstIn + (n - 1) * wps) };
     });
     const lauf = (cache.laufen || []).slice().sort((a, b) => a.datum.localeCompare(b.datum));
     const lm = lauf.length && lauf[lauf.length - 1].dauer_s ? Math.round(lauf[lauf.length - 1].dauer_s / 60) : null;
@@ -206,7 +209,7 @@
         <span class="z-end">${esc(r.end)}<small>${esc(r.endWhen)}</small></span></div>`).join("")}
       <div class="z-row"><b>Laufen</b><span class="z-now">${lm != null ? lm + " Min." : "noch offen"}</span>
         <span>${LAUF_ZIEL_MIN} Min. locker<small>${esc(wann(lw))}</small></span><span class="z-end">schneller bei gleichem Puls<small>2× pro Woche, Puls unter ${PULS_MAX}</small></span></div>
-      <p class="c-hint">Die Termine sind Schätzungen aus deinem bisherigen Tempo und passen sich an, wenn du schneller oder langsamer bist.${z.hold ? " Gerade ist Halten dran, das verschiebt die Termine etwas." : ""} Bouldern-Ziele kommen dazu, sobald die Ringbänder wieder ganz okay sind.</p>`);
+      <p class="c-hint">Bei jedem neuen Gewicht fängst du unten im Bereich an und steigerst die Wiederholungen bis zur oberen Zahl, dann kommt das nächste Gewicht. Die Termine sind Schätzungen aus deinem bisherigen Tempo und passen sich an, wenn du schneller oder langsamer bist.${z.hold ? " Gerade ist Halten dran, das verschiebt die Termine etwas." : ""} Bouldern-Ziele kommen dazu, sobald die Ringbänder wieder ganz okay sind.</p>`);
   }
 
   window.TBPlan = { kraft, laufen, woche, ziele, PLAN };

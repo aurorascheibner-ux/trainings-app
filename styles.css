@@ -528,3 +528,6 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .v-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .v-tag { font-size: .72rem; opacity: .7; white-space: nowrap; }
 .v-sub { font-size: .85rem; opacity: .85; margin-top: 2px; }
+.z-row > span { white-space: pre-line; }
+.off-basis { font-size: .7rem; padding: 1px 6px; border-radius: 8px; background: rgba(255, 255, 255, .14); font-weight: 600; }
+.off-note { margin: 6px 0 4px; }

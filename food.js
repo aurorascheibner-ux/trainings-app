@@ -18,6 +18,7 @@
 
   const cache = new Map();
   let form = null, db = null, timer = null, lastQ = "", picked = null, stream = null, scanning = false;
+  let useAlt = true; // erste Suche geht an de.openfoodfacts.org
   let own = null, ownOk = true; // eigene Lebensmittel (einmal laden)
 
   // Produkt aus Open Food Facts in einfache Werte umrechnen (alles pro 100 g)
@@ -55,6 +56,20 @@
       .sort((a, b) => b.anzahl - a.anzahl || a.name.localeCompare(b.name, "de")).slice(0, 6);
   }
 
+  // Grundnahrungsmittel aus grundnahrung.js: Wortanfänge zählen mehr, kurze Namen zuerst
+  function basisMatches(q, skip) {
+    const words = norm(q).split(/\s+/).filter(Boolean);
+    if (!words.length || !window.TBBasis) return [];
+    const taken = new Set(skip.map((x) => norm(x.name)));
+    return window.TBBasis.map((x) => {
+      const t = norm(x.name);
+      if (taken.has(t) || !words.every((w) => t.includes(w))) return null;
+      const start = words.every((w) => new RegExp("(^|[\\s(/,-])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(t));
+      return { x, s: (t.startsWith(words[0]) ? 0 : start ? 1 : 2) * 100 + t.length };
+    }).filter(Boolean).sort((a, b) => a.s - b.s).slice(0, 6).map((r) => r.x);
+  }
+  function localMatches(q) { const mine = ownMatches(q); return [...mine, ...basisMatches(q, mine)]; }
+
   // ---------- Formular erweitern ----------
   function attach(f, client) {
     form = f; db = client || db; picked = null; lastQ = "";
@@ -81,10 +96,14 @@
     clearTimeout(timer);
     if (picked && q === picked.name) return;
     if (q.length < 2) { hideList(); status("Oder tippen, dann kommen Produkte dazu."); return; }
-    const mine = ownMatches(q);
-    if (mine.length) show(mine, [], q.length >= 3);
-    else if (q.length < 3) hideList();
-    if (q.length >= 3) timer = setTimeout(() => search(q), 900); // Open Food Facts bittet um wenige Suchanfragen
+    const local = localMatches(q);
+    // Open Food Facts nur, wenn lokal nichts passt (sonst per Knopf), und erst nach einer Tipp-Pause: dort sind nur ~10 Suchen pro Minute erlaubt
+    const auto = q.length >= 3 && !local.length && !cache.has(q.toLowerCase());
+    if (cache.has(q.toLowerCase())) return show(local, cache.get(q.toLowerCase()), false);
+    if (local.length) show(local, [], auto ? "loading" : q.length >= 3 ? "button" : false);
+    else if (q.length < 3) { hideList(); status(""); }
+    else { hideList(); status("Suche Markenprodukte …"); }
+    if (auto) timer = setTimeout(() => search(q), 1200);
   }
 
   async function search(q) {
@@ -95,40 +114,46 @@
       status("Suche Produkte …");
       try {
         const qs = `?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=8&sort_by=unique_scans_n&fields=${FIELDS}`;
-        // Open Food Facts ist öfter kurz überlastet: bis zu 3 Versuche, abwechselnd zwei Server
-        let r = null;
-        for (const [i, host] of [SEARCH, SEARCH2, SEARCH].entries()) {
-          if (i) { status("Open Food Facts ist gerade langsam, ich versuche es nochmal …"); await new Promise((ok) => setTimeout(ok, 1200 * i)); }
-          if (!form || form.elements.lebensmittel.value.trim() !== q) return;
-          try { r = await fetch(host + qs); } catch { r = null; }
-          if (r && r.ok) break;
-        }
-        if (!r || !r.ok) throw new Error(r ? r.status : "net");
+        // Genau eine Anfrage; die Server wechseln sich ab, falls einer gerade überlastet ist
+        const host = (useAlt = !useAlt) ? SEARCH2 : SEARCH;
+        const r = await fetch(host + qs);
+        if (!r.ok) throw new Error(r.status);
         const j = await r.json();
         list = (j.products || []).map(simple).filter((x) => x.kcal != null);
         cache.set(q.toLowerCase(), list);
       } catch {
         lastQ = "";
         if (!form || form.elements.lebensmittel.value.trim() !== q) return;
-        if (!ownMatches(q).length) hideList();
-        status("Open Food Facts ist gerade überlastet, das liegt nicht an dir. In ein paar Minuten nochmal tippen. Deine eigenen Lebensmittel und der Barcode gehen trotzdem.");
+        const local = localMatches(q);
+        if (local.length) show(local, [], "failed"); else { const bx = form.querySelector("[data-off-list]"); bx.innerHTML = ""; bx._items = []; }
+        offFailed(!local.length);
         return;
       }
     }
     if (!form || form.elements.lebensmittel.value.trim() !== q) return;
-    const mine = ownMatches(q), codes = new Set(mine.map((x) => x.code).filter(Boolean));
-    show(mine, list.filter((x) => !codes.has(x.code)), false);
+    const local = localMatches(q), codes = new Set(local.map((x) => x.code).filter(Boolean));
+    show(local, list.filter((x) => !codes.has(x.code)), false);
+  }
+  function offFailed(nothing) {
+    const box = form.querySelector("[data-off-list]");
+    box.insertAdjacentHTML("beforeend", `<p class="muted small off-note">Open Food Facts (Markenprodukte) antwortet gerade nicht, der Dienst ist oft überlastet.</p>
+      <button type="button" class="btn ghost small-btn" data-off-search>Nochmal bei Open Food Facts suchen</button>`);
+    box.hidden = false;
+    if (nothing) status("Nichts in deinen Lebensmitteln oder den Grundnahrungsmitteln gefunden.");
   }
 
-  function show(mine, off, loading) {
+  // offState: false = fertig, "loading" = Open Food Facts läuft, "button" = auf Wunsch suchen, "failed" = hat nicht geantwortet
+  function show(local, off, offState) {
     const box = form.querySelector("[data-off-list]");
-    const all = [...mine, ...off];
-    if (!all.length) { hideList(); status("Kein Produkt gefunden. Leg es mit „+ Neues Lebensmittel“ an oder trag die Werte selbst ein."); return; }
-    status(loading ? "Deine Lebensmittel, suche noch weitere …" : off.length ? "Deine Lebensmittel zuerst, dann Open Food Facts:" : "Deine Lebensmittel:");
+    const all = [...local, ...off];
+    if (!all.length && !offState) { hideList(); status("Kein Produkt gefunden. Leg es mit „+ Neues Lebensmittel“ an oder trag die Werte selbst ein."); return; }
+    status(offState === "loading" ? "Suche noch Markenprodukte …" : "");
     box._items = all;
+    const tag = (x) => x.mine ? '<span class="off-mine">Deins</span> ' : x.basis ? '<span class="off-basis">Basis</span> ' : "";
     box.innerHTML = all.map((x, i) => `<button type="button" class="off-item" data-off-i="${i}">
-      <strong>${x.mine ? '<span class="off-mine">Deins</span> ' : ""}${esc(x.name)}</strong><span class="muted small">${esc([x.menge, `${de(x.kcal)} kcal`, x.p != null && `${de(x.p, 1)} g Eiweiß`].filter(Boolean).join(" · "))} pro 100 g</span></button>`).join("");
-    box.hidden = false;
+      <strong>${tag(x)}${esc(x.name)}</strong><span class="muted small">${esc([x.menge, `${de(x.kcal)} kcal`, x.p != null && `${de(x.p, 1)} g Eiweiß`].filter(Boolean).join(" · "))} pro 100 g</span></button>`).join("")
+      + (offState === "button" ? `<button type="button" class="btn ghost small-btn" data-off-search>Markenprodukte bei Open Food Facts suchen</button>` : "");
+    box.hidden = !all.length && offState !== "button";
   }
 
   function hideList() { const b = form && form.querySelector("[data-off-list]"); if (b) b.hidden = true; }
@@ -144,7 +169,7 @@
     const box = form.querySelector("[data-off-pick]");
     box.innerHTML = `<p class="small"><strong>${esc(x.name)}</strong><br><span class="muted">pro 100 g: ${[`${de(x.kcal)} kcal`, x.p != null && `${de(x.p, 1)} g Eiweiß`, x.kh != null && `${de(x.kh, 1)} g KH`, x.fett != null && `${de(x.fett, 1)} g Fett`].filter(Boolean).join(" · ")}</span></p>
       <label class="field"><span>Wie viel Gramm?</span><input type="text" inputmode="decimal" name="off_gramm" value="${g}"></label>
-      <p class="muted small">Alle Nährwerte werden für diese Menge ausgerechnet. ${x.mine ? "Werte aus deinen Lebensmitteln." : "Werte von Open Food Facts."}</p>`;
+      <p class="muted small">Alle Nährwerte werden für diese Menge ausgerechnet. ${x.mine ? "Werte aus deinen Lebensmitteln." : x.basis ? "Richtwerte für das Grundnahrungsmittel." : "Werte von Open Food Facts."}</p>`;
     box.hidden = false;
     const more = form.querySelector("details.more"); if (more) more.open = true;
     calc();
@@ -160,7 +185,7 @@
     if (picked.kcal != null) el.kcal.value = Math.round((picked.kcal * g) / 100);
     const put = (name, per100) => { if (el[name]) el[name].value = per100 == null ? "" : String(Math.round((per100 * g) / 10) / 10).replace(".", ","); };
     put("protein_g", picked.p); put("kh_g", picked.kh); put("zucker_g", picked.zucker); put("fett_g", picked.fett); put("fett_ges_g", picked.ges); put("ballast_g", picked.ballast);
-    if (el.notiz && (!el.notiz.value || /^Werte (von Open Food Facts|aus deinen Lebensmitteln)$/.test(el.notiz.value))) el.notiz.value = picked.mine ? "Werte aus deinen Lebensmitteln" : "Werte von Open Food Facts";
+    if (el.notiz && (!el.notiz.value || /^(Werte (von Open Food Facts|aus deinen Lebensmitteln)|Richtwerte Grundnahrungsmittel)$/.test(el.notiz.value))) el.notiz.value = picked.mine ? "Werte aus deinen Lebensmitteln" : picked.basis ? "Richtwerte Grundnahrungsmittel" : "Werte von Open Food Facts";
   }
 
   // Nach dem Speichern des Essens: gewähltes Produkt in „Meine Lebensmittel“ merken bzw. hochzählen
@@ -425,6 +450,12 @@
   document.addEventListener("click", (e) => {
     const it = e.target.closest("[data-off-i]");
     if (it) { const box = it.closest("[data-off-list]"); return pick(box._items[Number(it.dataset.offI)]); }
+    if (e.target.closest("[data-off-search]")) {
+      const q = form.elements.lebensmittel.value.trim(); lastQ = "";
+      e.target.closest("[data-off-search]").remove();
+      status("Suche Markenprodukte …");
+      return search(q);
+    }
     if (e.target.closest("[data-off-scan]")) return startScan();
     if (e.target.closest("[data-scan-close]")) return stopScan();
     if (e.target.closest("[data-own-new]")) return newForm();
