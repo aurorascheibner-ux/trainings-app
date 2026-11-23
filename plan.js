@@ -146,5 +146,68 @@
     });
   }
 
-  window.TBPlan = { kraft, laufen, woche, PLAN };
+  // ---------- Deine Ziele: was wann erreicht werden soll ----------
+  // Tempo je Übung aus deinem Verlauf (Wochen pro 5-kg-Schritt), sonst übliche Werte für Fortgeschrittene-Anfängerinnen
+  const WOCHEN_PRO_SCHRITT = { "Bankdrücken": 4, "Kniebeugen": 4, "Rumänisches Kreuzheben": 4, "Ausfallschritt": 4, "Klimmzug": 4 };
+  const MONATE = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."];
+  function wann(weeks) {
+    if (weeks <= 0.5) return "nächstes Training";
+    const d = new Date(Date.now() + weeks * 7 * DAY), day = d.getDate();
+    const teil = day <= 10 ? "Anfang" : day <= 20 ? "Mitte" : "Ende";
+    return `${teil} ${MONATE[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? " ’" + String(d.getFullYear()).slice(2) : ""}`;
+  }
+  function arbeitsgewicht(ex, rows, d) {
+    const sets = rows.filter((r) => r.datum === d), wt = (r) => Number(r.gewicht_kg) || 0;
+    const ok = sets.filter((r) => (Number(r.wdh) || 0) >= ex.lo);
+    return ok.length ? Math.max(...ok.map(wt)) : Math.max(...sets.map(wt));
+  }
+  function tempo(ex, kraft) {
+    const rows = kraft.filter((r) => r.uebung === ex.u && Number(r.gewicht_kg) > 0);
+    const dates = [...new Set(rows.map((r) => r.datum))].sort();
+    const def = WOCHEN_PRO_SCHRITT[ex.u] || 4;
+    if (dates.length < 3) return def;
+    const w0 = arbeitsgewicht(ex, rows, dates[0]), w1 = arbeitsgewicht(ex, rows, dates[dates.length - 1]);
+    const weeks = (new Date(dates[dates.length - 1]) - new Date(dates[0])) / (7 * DAY);
+    const steps = (w1 - w0) / (ex.step || 5);
+    if (steps <= 0 || weeks < 2) return def;
+    return Math.min(6, Math.max(4, weeks / steps)); // höchstens alle 4 Wochen einplanen: in Lutealphase und Periode wird ja gehalten
+  }
+  const ZIEL_WOCHEN = 13; // etwa 3 Monate
+
+  function ziele(parent, cache) {
+    const kr = cache.kraft || [];
+    const z = zyklusHalt(cache);
+    const seen = new Set(), exs = [];
+    ["A", "B"].forEach((k) => PLAN[k].forEach((e) => { if (!seen.has(e.u)) { seen.add(e.u); exs.push(e); } }));
+    const end = new Date(Date.now() + ZIEL_WOCHEN * 7 * DAY);
+    const c = card(parent, "Deine Ziele", `Wo du jetzt stehst, der nächste Schritt und wo du ${wann(ZIEL_WOCHEN)} sein kannst (Termine ungefähr)`);
+    const rows = exs.map((ex) => {
+      const g = target(ex, kr, false);
+      if (ex.bw) {
+        const last = kr.filter((r) => r.uebung === ex.u);
+        const now = last.length ? Math.max(1, g.aim - (g.up ? 0 : 1)) : null;
+        const goal = ex.hi, wk = now == null ? 4 : Math.max(0, goal - now); // etwa 1 Wiederholung pro Woche
+        return { u: ex.u, now: now == null ? "noch offen" : `3 × ${now}`, next: `3 × ${goal}`, nextWhen: wann(wk), end: goal <= now ? "dann langsamer oder mit Gewicht" : "", endWhen: "" };
+      }
+      const step = ex.step || 5, wps = tempo(ex, kr);
+      const now = g.up ? g.w - step : g.w;
+      const firstIn = g.up ? 0 : wps;
+      const n = Math.max(1, 1 + Math.floor((ZIEL_WOCHEN - firstIn) / wps));
+      return { u: ex.u, now: kg(ex, now), next: kg(ex, now + step), nextWhen: wann(firstIn), end: kg(ex, now + n * step), endWhen: wann(firstIn + (n - 1) * wps) };
+    });
+    const lauf = (cache.laufen || []).slice().sort((a, b) => a.datum.localeCompare(b.datum));
+    const lm = lauf.length && lauf[lauf.length - 1].dauer_s ? Math.round(lauf[lauf.length - 1].dauer_s / 60) : null;
+    const lw = lm == null ? 3 : Math.max(0, Math.ceil((LAUF_ZIEL_MIN - lm) / 5));
+    c.insertAdjacentHTML("beforeend", `
+      <div class="z-head"><span></span><span>jetzt</span><span>nächster Schritt</span><span>Ziel</span></div>
+      ${rows.map((r) => `<div class="z-row"><b>${esc(r.u.replace(" im Liegestütz", ""))}</b>
+        <span class="z-now">${esc(r.now)}</span>
+        <span>${esc(r.next)}<small>${esc(r.nextWhen)}</small></span>
+        <span class="z-end">${esc(r.end)}<small>${esc(r.endWhen)}</small></span></div>`).join("")}
+      <div class="z-row"><b>Laufen</b><span class="z-now">${lm != null ? lm + " Min." : "noch offen"}</span>
+        <span>${LAUF_ZIEL_MIN} Min. locker<small>${esc(wann(lw))}</small></span><span class="z-end">schneller bei gleichem Puls<small>2× pro Woche, Puls unter ${PULS_MAX}</small></span></div>
+      <p class="c-hint">Die Termine sind Schätzungen aus deinem bisherigen Tempo und passen sich an, wenn du schneller oder langsamer bist.${z.hold ? " Gerade ist Halten dran, das verschiebt die Termine etwas." : ""} Bouldern-Ziele kommen dazu, sobald die Ringbänder wieder ganz okay sind.</p>`);
+  }
+
+  window.TBPlan = { kraft, laufen, woche, ziele, PLAN };
 })();
