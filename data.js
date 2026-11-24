@@ -411,6 +411,8 @@ function renderToday() {
     $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
   }
 
+  if (window.TBSupp) window.TBSupp.render($("[data-supp]"), db, cache);
+
   const open = (cache.befinden || []).find((r) => !r.datum_bis && r.status !== "gut");
   const lastB = (cache.befinden || [])[0];
   // Symbol auf der Kachel je Zustand (Wunsch 21.11.)
