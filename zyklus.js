@@ -71,7 +71,7 @@
     const btn = laufend ? `<button type="button" class="btn" data-edit-periode="${esc(laufend.id)}">Periode ist vorbei</button>` : "";
     return el(`<div class="glass z-ring-card">
       <svg viewBox="0 0 260 260" class="z-ring" role="img" aria-label="Zyklustag ${z.day} von etwa ${z.len}, ${z.phase}">
-        <circle cx="${C}" cy="${C}" r="${R}" stroke="rgba(255,255,255,.08)" stroke-width="${SW + 6}" fill="none"/>
+        <circle cx="${C}" cy="${C}" r="${R}" style="stroke:var(--track)" stroke-width="${SW + 6}" fill="none"/>
         ${segs}
         <g transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${(ang(z.day - 0.5) * 180 / Math.PI + 90).toFixed(1)})"><path d="M14 0 L-9 -12 L-4 0 L-9 12 Z" class="z-mark"/></g>
         <text x="${C}" y="${C - 30}" text-anchor="middle" class="z-r-lbl">Zyklustag</text>
@@ -167,7 +167,7 @@
         <div><b>${aP ?? "–"}</b><span>Ø Periode (Tage)</span></div>
       </div>
       ${bars}
-      <div class="z-legend"><span><i style="background:${BANDC.Periode}"></i>Periode</span><span><i style="background:rgba(255,255,255,.35)"></i>ganzer Zyklus</span></div>
+      <div class="z-legend"><span><i style="background:${BANDC.Periode}"></i>Periode</span><span><i style="background:var(--ring-rest)"></i>ganzer Zyklus</span></div>
     </div>`);
   }
 
