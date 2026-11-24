@@ -170,7 +170,7 @@
     const box = form.querySelector("[data-off-pick]");
     box.innerHTML = `<p class="small"><strong>${esc(x.name)}</strong><br><span class="muted">pro 100 g: ${[`${de(x.kcal)} kcal`, x.p != null && `${de(x.p, 1)} g Eiweiß`, x.kh != null && `${de(x.kh, 1)} g KH`, x.fett != null && `${de(x.fett, 1)} g Fett`].filter(Boolean).join(" · ")}</span></p>
       <label class="field"><span>Wie viel Gramm?</span><input type="text" inputmode="decimal" name="off_gramm" value="${g}"></label>
-      <p class="muted small">Alle Nährwerte werden für diese Menge ausgerechnet. ${x.mine ? "Werte aus deinen Lebensmitteln." : x.basis ? "Richtwerte für das Grundnahrungsmittel." : "Werte von Open Food Facts."}</p>`;
+      <p class="muted small">${x.mine ? "Werte aus deinen Lebensmitteln." : x.basis ? "Richtwerte für das Grundnahrungsmittel." : "Werte von Open Food Facts."}</p>`;
     box.hidden = false;
     const more = form.querySelector("details.more"); if (more) more.open = true;
     calc();

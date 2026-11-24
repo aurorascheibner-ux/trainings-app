@@ -126,7 +126,7 @@
     const chip = (v, on, kind) => `<button type="button" class="z-chip${on ? " on" : ""}" data-ztag="${kind}" data-v="${esc(v)}">${esc(v)}</button>`;
     return el(`<div class="glass z-check">
       <h3 class="c-title">${head}</h3>
-      <p class="c-note">${p ? KURZ[p.phase] + " · " : ""}Antippen speichert sofort.</p>
+      ${p ? `<p class="c-note">${KURZ[p.phase]}</p>` : ""}
       <span class="c-lbl">Blutung</span>
       <div class="z-chips">${BLUTUNG.map((v) => chip(v, tag.blutung === v, "blutung")).join("")}</div>
       ${GRUPPEN.map(([g, list]) => `<span class="c-lbl">${g}</span><div class="z-chips">${list.map((v) => chip(v, sym.has(v), "sym")).join("")}</div>`).join("")}
@@ -156,7 +156,6 @@
       </div>`).join("");
     return el(`<div class="glass c-card">
       <h3 class="c-title">Deine Zyklen</h3>
-      <p class="c-note">${zyklen.length === 1 ? "Bisher ein Zyklus eingetragen, er läuft noch." : `Die letzten ${zyklen.length} Zyklen. Der oberste läuft noch.`}</p>
       <div class="z-stats">
         <div><b>${aL ?? "–"}</b><span>Ø Zykluslänge${aL ? " (Tage)" : ", ab 2 Perioden"}</span></div>
         <div><b>${aP ?? "–"}</b><span>Ø Periode (Tage)</span></div>
@@ -181,7 +180,7 @@
     }).join("");
     return el(`<div class="glass c-card">
       <h3 class="c-title">Was in welcher Phase auftaucht</h3>
-      <p class="c-note">${any ? "Die häufigsten Einträge aus deinem Tages-Check." : "Füllt sich, sobald du ein paar Tage im Tages-Check angetippt hast."}</p>
+      ${any ? "" : `<p class="c-note">Noch leer.</p>`}
       <table class="c-table z-table">${rows}</table>
     </div>`);
   }

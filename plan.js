@@ -90,7 +90,7 @@
     const n = new Set(rows.filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const { next, was, last } = nextDay(rows);
     const z = zyklusHalt(cache), sick = krank(cache);
-    const head = last === t ? "Heute erledigt ✓ · das ist beim nächsten Mal dran:" : "Das ist beim nächsten Krafttraining dran:";
+    const head = last === t ? "Heute erledigt ✓" : "";
     const c = card(parent, "Dein Plan", head);
     const items = PLAN[next].map((ex) => {
       const g = target(ex, rows, z.hold);
@@ -119,12 +119,12 @@
     const lastMin = last && last.dauer_s ? Math.round(last.dauer_s / 60) : null;
     const next = lastMin == null ? 30 : Math.min(LAUF_ZIEL_MIN, Math.max(20, lastMin + 5));
     const hf = last && Number(last.avg_hf);
-    const c = card(parent, "Dein Plan", "Laufen: locker, damit du bei gleichem Puls schneller wirst");
+    const c = card(parent, "Dein Plan");
     c.insertAdjacentHTML("beforeend", `
       <div class="p-week">Läufe diese Woche ${dots(Math.min(n, LAUF_PRO_WOCHE), LAUF_PRO_WOCHE)} <span>${n} von ${LAUF_PRO_WOCHE}</span></div>
       <div class="p-row"><div class="p-top"><b>Nächster Lauf</b></div><div class="p-goal">${next} Min. · Puls unter ${PULS_MAX}</div>
       <div class="p-sub">${lastMin != null ? `Zuletzt ${lastMin} Min.${hf ? `, Ø ${hf} bpm` : ""}. ` : ""}${hf && hf > PULS_MAX ? "Der Puls war etwas hoch: öfter kurz gehen, bis er wieder unten ist." : next >= LAUF_ZIEL_MIN ? "45 Minuten erreicht: Dauer halten, das Tempo kommt von selbst." : "Jede Woche etwa 5 Minuten länger, bis 45 Minuten."}</div></div>
-      <p class="c-hint">Am besten an Tagen ohne Krafttraining. Die Grafik „Meter pro Herzschlag“ zeigt, ob du bei gleichem Puls schneller wirst.</p>`);
+      <p class="c-hint">Am besten an Tagen ohne Krafttraining.</p>`);
   }
 
   function woche(parent, cache) {
@@ -132,13 +132,12 @@
     const k = new Set((cache.kraft || []).filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const l = (cache.laufen || []).filter((r) => r.datum >= wk).length;
     const bo = new Set((cache.bouldern || []).filter((r) => r.datum >= wk).map((r) => r.datum)).size;
-    const { next } = nextDay(cache.kraft || []);
     const c = card(parent, "Dein Plan diese Woche");
+    c.querySelector(".c-title").insertAdjacentHTML("beforeend", ` <span class="chev" aria-hidden="true">›</span>`);
     c.insertAdjacentHTML("beforeend", `
       <div class="p-week">Bouldern ${dots(Math.min(bo, BOULDER_PRO_WOCHE), BOULDER_PRO_WOCHE)} <span>${bo} von ${BOULDER_PRO_WOCHE}${bo > BOULDER_PRO_WOCHE ? " +" + (bo - BOULDER_PRO_WOCHE) : ""}</span></div>
       <div class="p-week">Kraft ${dots(Math.min(k, KRAFT_PRO_WOCHE), KRAFT_PRO_WOCHE)} <span>${k} von ${KRAFT_PRO_WOCHE}</span></div>
-      <div class="p-week">Laufen ${dots(Math.min(l, LAUF_PRO_WOCHE), LAUF_PRO_WOCHE)} <span>${l} von ${LAUF_PRO_WOCHE}</span></div>
-      <p class="c-hint">Als Nächstes: ${esc(PLAN[next].map((e) => e.u.replace(" im Liegestütz", "")).join(", "))}. Antippen für deinen Plan ›</p>`);
+      <div class="p-week">Laufen ${dots(Math.min(l, LAUF_PRO_WOCHE), LAUF_PRO_WOCHE)} <span>${l} von ${LAUF_PRO_WOCHE}</span></div>`);
     // Ganze Karte führt zum Plan unter Training → Kraft
     c.classList.add("p-link");
     c.setAttribute("role", "link");
@@ -185,12 +184,12 @@
     const lbl = (d, teil) => `${teil} ${MONATE[d.getUTCMonth()]}${d.getUTCFullYear() !== now.getFullYear() ? " ’" + String(d.getUTCFullYear()).slice(2) : ""}`;
     return [{ w: (m1 - t) / (7 * DAY), l: lbl(m1, "Mitte") }, { w: (m2 - t) / (7 * DAY), l: lbl(m2, "Ende") }];
   }
-  function ziele(parent, cache) {
+  function ziele(parent, cache, sport) {
     const kr = cache.kraft || [];
     const seen = new Set(), exs = [];
     ["A", "B"].forEach((k) => PLAN[k].forEach((e) => { if (!seen.has(e.u)) { seen.add(e.u); exs.push(e); } }));
     const ms = meilensteine();
-    const c = card(parent, "Deine Ziele", `Gleiche Termine für alle Übungen: ${ms[0].l} und ${ms[1].l}`);
+    const c = card(parent, "Deine Ziele");
     const rows = exs.map((ex) => {
       const g = target(ex, kr, false), pro = ex.side ? " pro Seite" : "";
       if (ex.bw) {
@@ -208,12 +207,16 @@
     const lauf = (cache.laufen || []).slice().sort((a, b) => a.datum.localeCompare(b.datum));
     const lm = lauf.length && lauf[lauf.length - 1].dauer_s ? Math.round(lauf[lauf.length - 1].dauer_s / 60) : null;
     const lAt = (w) => Math.min(LAUF_ZIEL_MIN, (lm == null ? 25 : lm) + Math.floor(w) * 5);
+    const head = `<div class="z-head"><span></span><span>jetzt</span><span>${esc(ms[0].l)}</span><span>${esc(ms[1].l)}</span></div>`;
+    if (sport === "laufen") {
+      c.insertAdjacentHTML("beforeend", `${head}<div class="z-row"><b>Laufen</b><span class="z-now">${lm != null ? lm + " Min." : "noch offen"}</span>
+        <span>${lAt(ms[0].w)} Min. locker</span><span class="z-end">${lAt(ms[1].w)} Min., schneller bei gleichem Puls</span></div>`);
+      return;
+    }
     c.insertAdjacentHTML("beforeend", `
-      <div class="z-head"><span></span><span>jetzt</span><span>${esc(ms[0].l)}</span><span>${esc(ms[1].l)}</span></div>
+      ${head}
       ${rows.map((r) => `<div class="z-row"><b>${esc(r.u.replace(" im Liegestütz", ""))}</b>
         <span class="z-now">${esc(r.now)}</span><span>${esc(r.m[0])}</span><span class="z-end">${esc(r.m[1])}</span></div>`).join("")}
-      <div class="z-row"><b>Laufen</b><span class="z-now">${lm != null ? lm + " Min." : "noch offen"}</span>
-        <span>${lAt(ms[0].w)} Min. locker</span><span class="z-end">${lAt(ms[1].w)} Min., schneller bei gleichem Puls</span></div>
       <details class="z-why"><summary>ⓘ Wie rechnet die App?</summary><p>Bei jedem neuen Gewicht fängst du unten im Bereich an und steigerst die Wiederholungen bis zur oberen Zahl, dann kommt das nächste Gewicht (5-kg-Schritte). Das Tempo kommt aus deinem bisherigen Verlauf. In Lutealphase und Periode wird gehalten, deshalb sind es Schätzungen.</p></details>`);
   }
 
