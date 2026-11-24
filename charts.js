@@ -732,78 +732,80 @@
   let kwSel = "gewicht_kg", kwInfo = null;
   const kfmt = (v, d) => Number(v).toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
 
+  const HAUPT = ["gewicht_kg", "koerperfett_pct", "muskelmasse_kg"];
+  const spark = (vals, col) => {
+    if (vals.length < 2) return "";
+    const w = 96, h = 24, lo = Math.min(...vals), hi = Math.max(...vals), r = hi - lo || 1;
+    const pts = vals.map((v, i) => [(i / (vals.length - 1)) * (w - 4) + 2, h - 3 - ((v - lo) / r) * (h - 6)]);
+    const l = pts[pts.length - 1];
+    return `<svg class="k-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" style="stroke:${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${l[0].toFixed(1)}" cy="${l[1].toFixed(1)}" r="2.6" style="fill:${col}"/></svg>`;
+  };
   function koerper(box, missing) {
     if (missing) return; // Hinweis auf die SQL-Datei steht in der Liste darunter
     const rows = (C.koerper || []).slice().sort((a, b) => a.datum.localeCompare(b.datum) || String(a.created_at).localeCompare(String(b.created_at)));
     if (!rows.length) {
-      const b = card(box, "Körperwerte", "Hier siehst du die Werte deiner Waage über die Zeit.");
-      b.appendChild(E("p", "c-hint", "Noch keine Messung. Tipp unten auf +, oder schick mir einen Screenshot deiner Waage."));
-      tipps(box);
+      const b = card(box, "Körperwerte");
+      b.appendChild(E("p", "c-hint", "Noch keine Messung. Tipp auf + oder schick mir einen Screenshot deiner Waage."));
       return;
     }
     const last = rows[rows.length - 1];
-    const prevOf = (k) => { for (let i = rows.length - 2; i >= 0; i--) if (rows[i][k] != null) return rows[i]; return null; };
-    const body = card(box, "Letzte Messung", "Tippe auf einen Wert für den Verlauf, auf ⓘ für die Erklärung.");
-    const head = E("div", "k-head");
-    head.appendChild(E("b", "", pd(last.datum).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", timeZone: "UTC" })));
-    const ph = phaseOn(last.datum);
-    if (ph) { const s = E("span", "k-phase"), i = E("i"); i.style.background = BANDC[ph]; s.append(i, document.createTextNode(ph)); head.appendChild(s); }
-    if (rows.length > 1) head.appendChild(E("span", "k-phase", "Vergleich mit " + dm(+pd(rows[rows.length - 2].datum))));
-    body.appendChild(head);
-    const grid = E("div", "k-grid");
-    KW.filter((m) => last[m.k] != null).forEach((m) => {
-      const v = Number(last[m.k]), p = prevOf(m.k);
-      const btn = E("button", "k-val" + (kwSel === m.k ? " on" : "")); btn.type = "button";
-      btn.appendChild(E("span", "k-l", m.l));
-      const n = E("span", "k-n", kfmt(v, m.d)); if (m.u) n.appendChild(E("small", "", m.u)); btn.appendChild(n);
-      if (p) {
-        const diff = v - Number(p[m.k]);
-        const small = Math.abs(diff) < m.noise;
-        const txt = small ? "≈ gleich" : (diff > 0 ? "▲ +" : "▼ −") + kfmt(Math.abs(diff), m.d) + (m.u && m.u !== "Jahre" ? " " + m.u : "");
-        btn.appendChild(E("span", "k-d" + (!small && m.dir && Math.sign(diff) === m.dir ? " gut" : ""), txt));
-      } else btn.appendChild(E("span", "k-d", "erste Messung"));
-      const ib = E("span", "k-i", "i"); ib.setAttribute("role", "button"); ib.setAttribute("aria-label", "Was ist " + m.l + "?");
-      btn.appendChild(ib);
-      btn.addEventListener("click", (ev) => {
-        if (ev.target === ib) kwInfo = kwInfo === m.k ? null : m.k;
-        else { kwSel = m.k; }
-        rerender();
-      });
-      grid.appendChild(btn);
-    });
-    // Erklärung direkt unter der Zeile mit dem angetippten Wert
-    const tiles = [...grid.children], ii = KW.filter((m) => last[m.k] != null).findIndex((m) => m.k === kwInfo);
-    if (ii >= 0) {
-      const m = KW.find((x) => x.k === kwInfo), info = E("p", "k-info");
-      info.appendChild(E("b", "", m.l)); info.appendChild(document.createTextNode(m.t)); info.appendChild(E("span", "k-r", m.r));
-      tiles[Math.min(ii | 1, tiles.length - 1)].after(info);
-    }
-    body.appendChild(grid);
-    if (last.notiz) body.appendChild(E("p", "c-hint", "Notiz: " + last.notiz));
-    if (ph === "Lutealphase" || ph === "Periode") body.appendChild(E("p", "c-hint", "Gemessen in der " + (ph === "Periode" ? "Periode" : "Lutealphase") + ": Gewicht und Wasser sind dann oft etwas höher, Fett und Muskeln wackeln mit. Nicht überbewerten."));
+    const series = (k) => rows.filter((r) => r[k] != null);
+    const delta = (m) => {
+      const s = series(m.k); if (s.length < 2) return { txt: "erste Messung", cls: "" };
+      const v = Number(s[s.length - 1][m.k]), diff = v - Number(s[s.length - 2][m.k]);
+      if (Math.abs(diff) < m.noise) return { txt: "≈ gleich", cls: "" };
+      return { txt: (diff > 0 ? "▲ " : "▼ ") + kfmt(Math.abs(diff), m.d), cls: m.dir && Math.sign(diff) === m.dir ? " gut" : "" };
+    };
+    const lastOf = (k) => { const s = series(k); return s.length ? s[s.length - 1] : null; };
 
-    // Verlauf des gewählten Werts
-    const have = KW.filter((m) => rows.some((r) => r[m.k] != null));
-    if (!have.some((m) => m.k === kwSel)) kwSel = have[0].k;
-    const m = KW.find((x) => x.k === kwSel);
-    const vb = card(box, "Verlauf: " + m.l, "Farbige Flächen sind deine Zyklusphasen. Achte auf die Richtung über mehrere Wochen.");
-    const chips = E("div", "k-chips");
-    have.forEach((x) => { const c = E("button", x.k === kwSel ? "on" : "", x.l); c.type = "button"; c.addEventListener("click", () => { kwSel = x.k; rerender(); }); chips.appendChild(c); });
-    vb.appendChild(chips);
-    const pts = rows.filter((r) => r[m.k] != null).map((r) => ({ d: pd(r.datum), v: Number(r[m.k]), label: kfmt(r[m.k], m.d) + (m.u ? " " + m.u : "") + (phaseOn(r.datum) ? " · " + phaseOn(r.datum) : "") }));
-    const vs = pts.map((p) => p.v), span = Math.max(m.noise * 4, Math.max(...vs) - Math.min(...vs));
-    const mid = (Math.max(...vs) + Math.min(...vs)) / 2, nt = niceTicks(mid - span * 0.65, mid + span * 0.65);
-    const plot = E("div"); vb.appendChild(plot);
-    chart(plot, { kind: "line", phases: true, left: { domain: nt.domain, ticks: nt.ticks, fmt: (t) => kfmt(t, Number.isInteger(t) ? 0 : 1) }, series: [{ name: m.l, color: "var(--c2)", pts }] });
-    if (pts.length < 3) vb.appendChild(E("p", "c-hint", "Ab etwa 3 bis 4 Messungen siehst du eine echte Richtung."));
-    tipps(box);
+    // 1) Letzte Messung: drei Hauptwerte mit Mini-Verlauf
+    const body = card(box, "Letzte Messung");
+    const ph = phaseOn(last.datum);
+    const meta = E("p", "k-meta", pd(last.datum).toLocaleDateString("de-DE", { day: "numeric", month: "long", timeZone: "UTC" }));
+    if (ph) { const i = E("i"); i.style.background = BANDC[ph]; meta.append(" · ", i, " " + ph); }
+    body.appendChild(meta);
+    const big = E("div", "k-big3");
+    HAUPT.map((k) => KW.find((m) => m.k === k)).forEach((m) => {
+      const r = lastOf(m.k);
+      const t = E("button", "k-b3" + (kwSel === m.k ? " on" : "")); t.type = "button";
+      if (!r) { t.append(E("span", "k-l", m.l), E("span", "k-n", "–")); big.appendChild(t); return; }
+      const d = delta(m);
+      t.innerHTML = `<span class="k-l">${m.l === "Muskelmasse" ? "Muskeln" : m.l}</span><span class="k-n">${kfmt(r[m.k], m.k === "gewicht_kg" ? 1 : m.d)}<small>${m.u}</small></span><span class="k-d${d.cls}">${d.txt}</span>${spark(series(m.k).map((x) => Number(x[m.k])), d.cls ? "var(--c2)" : "var(--muted)")}`;
+      t.addEventListener("click", () => { kwSel = m.k; rerender(); });
+      big.appendChild(t);
+    });
+    body.appendChild(big);
+
+    // 2) Eine Grafik mit Umschalter
+    const m = KW.find((x) => x.k === kwSel) || KW[0];
+    const seg = E("div", "k-seg");
+    HAUPT.forEach((k) => { const x = KW.find((y) => y.k === k); const s = E("button", x.k === kwSel ? "on" : "", x.l === "Muskelmasse" ? "Muskeln" : x.l); s.type = "button"; s.addEventListener("click", () => { kwSel = x.k; rerender(); }); seg.appendChild(s); });
+    body.appendChild(seg);
+    if (!HAUPT.includes(m.k)) body.appendChild(E("p", "k-seltitle", m.l));
+    const pts = series(m.k).map((r) => ({ d: pd(r.datum), v: Number(r[m.k]), label: kfmt(r[m.k], m.d) + (m.u ? " " + m.u : "") + (phaseOn(r.datum) ? " · " + phaseOn(r.datum) : "") }));
+    const plot = E("div"); body.appendChild(plot);
+    if (pts.length) {
+      const vs = pts.map((p) => p.v), span = Math.max(m.noise * 4, Math.max(...vs) - Math.min(...vs));
+      const mid = (Math.max(...vs) + Math.min(...vs)) / 2, nt = niceTicks(mid - span * 0.65, mid + span * 0.65);
+      chart(plot, { kind: "line", phases: true, h: 170, left: { domain: nt.domain, ticks: nt.ticks, fmt: (t) => kfmt(t, Number.isInteger(t) ? 0 : 1) }, series: [{ name: m.l, color: "var(--c2)", pts }] });
+    }
+    const info = E("details", "k-why"); info.appendChild(E("summary", "", "ⓘ Was ist " + m.l + "?"));
+    info.appendChild(E("p", "", m.t)); info.appendChild(E("p", "k-r", m.r)); body.appendChild(info);
+
+    // 3) Alle Werte, eingeklappt
+    const all = E("details", "glass c-card k-all"); all.open = kwAll;
+    all.addEventListener("toggle", () => { kwAll = all.open; });
+    const sm = E("summary"); sm.append(E("span", "c-title", "Alle Werte"), E("span", "k-cnt", KW.filter((x) => lastOf(x.k)).length + " Werte ⌄")); all.appendChild(sm);
+    KW.filter((x) => lastOf(x.k)).forEach((x) => {
+      const d = delta(x), row = E("button", "k-row" + (x.k === kwSel ? " on" : "")); row.type = "button";
+      row.innerHTML = `<span class="k-rn">${x.l}</span>${spark(series(x.k).map((r) => Number(r[x.k])), "var(--muted)")}<span class="k-rv">${kfmt(lastOf(x.k)[x.k], x.d)}${x.u && x.u !== "Jahre" ? " " + x.u : ""}</span><span class="k-d${d.cls}">${d.txt}</span>`;
+      row.addEventListener("click", () => { kwSel = x.k; rerender(); box.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      all.appendChild(row);
+    });
+    box.appendChild(all);
   }
-  function tipps(box) {
-    const b = card(box, "So misst du vergleichbar");
-    const ul = E("ul", "k-tips");
-    ["Einmal pro Woche, am besten immer am gleichen Wochentag.", "Morgens nach der Toilette, vor Essen und Trinken.", "Nicht direkt nach dem Training oder der Sauna.", "Barfuß und mit trockenen Füßen.", "Einmal im Monat alle Messungen an Claude schicken, auch gern als Screenshots."].forEach((t) => ul.appendChild(E("li", "", t)));
-    b.appendChild(ul);
-  }
+  let kwAll = false;
+
   // Letzte Messung mit Gewicht (für Kalorienziel), höchstens 60 Tage alt
   function letzteWaage() {
     const lim = iso(+todayUTC() - 60 * DAY);
