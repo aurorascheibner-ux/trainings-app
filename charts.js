@@ -408,25 +408,56 @@
   // ---------- Ernährung: Tagesziel ----------
   // Leichtes Defizit (Entscheidung 21.11.2026): Grundumsatz Waage 1.681 kcal, fettfreie Masse 60,7 kg
   const FOOD = { train: { kcal: 2300, p: 130, f: 70, kh: 290 }, rest: { kcal: 2000, p: 130, f: 70, kh: 210 } };
-  function tagesziel(parent) {
-    const ti = iso(todayUTC());
+  // Ziel für einen beliebigen Tag: Trainingstag, Krankheit und Zyklusphase an genau diesem Tag
+  function zielFuer(ti) {
     const trained = ["bouldern", "kraft", "laufen", "rad"].some((t) => (C[t] || []).some((r) => r.datum === ti));
     const sick = (C.befinden || []).find((r) => r.status === "krank" && r.datum_von <= ti && (!r.datum_bis || ti <= r.datum_bis));
     const cur = C.phasen.find((p) => p.start <= ti && ti <= p.ende);
-    const base = { ...(trained ? FOOD.train : FOOD.rest) };
-    let why = trained ? "Trainingstag" : "Ruhetag, wird zum Trainingstag, sobald du Training einträgst";
+    const base = { ...(trained ? FOOD.train : FOOD.rest), b: 30 };
+    let why = trained ? "Trainingstag" : ti === iso(todayUTC()) ? "Ruhetag, wird zum Trainingstag, sobald du Training einträgst" : "Ruhetag";
     if (sick) { Object.assign(base, { kcal: 2400, kh: 310 }); why = "Krank: auf Erhaltung essen, kein Defizit, viel trinken"; }
     else if (cur && cur.phase === "Periode") { base.kcal = trained ? 2500 : 2200; base.kh += 50; why += " · Periode: auf Erhaltung"; }
     else if (cur && cur.phase === "Lutealphase") { base.kcal += 150; base.kh += 25; why += " · Lutealphase: +150 kcal"; }
+    return { base, why };
+  }
+  const tagSumme = (ti) => {
     const eat = (C.ernaehrung || []).filter((r) => r.datum === ti);
     const sum = (k) => Math.round(d3.sum(eat, (r) => Number(r[k]) || 0) * 10) / 10;
+    return { eat, sum };
+  };
+  // Welcher Tag ist oben gewählt (null = heute)? Bleibt beim Neuzeichnen erhalten.
+  let foodDay = null, foodMetric = "kcal", lastArgs = null;
+  const rerender = () => { if (lastArgs) render(...lastArgs); };
+  const tagName = (ti) => {
+    const t = iso(todayUTC()), y = iso(+todayUTC() - DAY);
+    if (ti === t) return "Heute";
+    if (ti === y) return "Gestern";
+    return pd(ti).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  };
+
+  function tagesziel(parent) {
+    const today = iso(todayUTC());
+    const ti = foodDay && foodDay < today ? foodDay : today;
+    const isToday = ti === today;
+    const { base, why } = zielFuer(ti);
+    const { eat, sum } = tagSumme(ti);
     const kc = Math.round(sum("kcal")), pr = Math.round(sum("protein_g"));
     // Richtwerte: gesättigte Fette höchstens 10 % der Energie, Zucker höchstens etwa 50 g, Ballaststoffe mind. 30 g (DGE/WHO)
     const satMax = Math.round((base.kcal * 0.1) / 9), sugMax = 50, fibMin = 30;
-    const body = card(parent, "Heutiges Ziel", why);
+    const body = card(parent, isToday ? "Heutiges Ziel" : tagName(ti) === "Gestern" ? "Ziel gestern" : "Ziel am " + tagName(ti), why);
+    // Tage blättern
+    const nav = E("div", "f-nav");
+    const prev = E("button", "icon-btn f-prev", "‹"), next = E("button", "icon-btn f-next", "›"), lbl = E("span", "f-day", tagName(ti));
+    prev.type = next.type = "button"; prev.setAttribute("aria-label", "Tag davor"); next.setAttribute("aria-label", "Tag danach");
+    next.disabled = isToday;
+    prev.addEventListener("click", () => { foodDay = iso(+pd(ti) - DAY); rerender(); });
+    next.addEventListener("click", () => { const n = iso(+pd(ti) + DAY); foodDay = n >= today ? null : n; rerender(); });
+    nav.append(prev, lbl, next);
+    if (!isToday) { const back = E("button", "btn ghost small-btn f-today", "Zu heute"); back.type = "button"; back.addEventListener("click", () => { foodDay = null; rerender(); }); nav.appendChild(back); }
+    body.appendChild(nav);
     const rest = base.kcal - kc;
-    body.appendChild(E("div", "c-big" + (rest < 0 ? " over" : ""), rest >= 0 ? fnum(rest) + " kcal übrig" : fnum(-rest) + " kcal drüber"));
-    body.appendChild(E("p", "c-sub", "Ziel heute " + fnum(base.kcal) + " kcal · gegessen " + fnum(kc) + " kcal"));
+    body.appendChild(E("div", "c-big" + (rest < 0 ? " over" : ""), rest >= 0 ? fnum(rest) + (isToday ? " kcal übrig" : " kcal unter Ziel") : fnum(-rest) + " kcal drüber"));
+    body.appendChild(E("p", "c-sub", "Ziel " + (isToday ? "heute " : "") + fnum(base.kcal) + " kcal · gegessen " + fnum(kc) + " kcal"));
     const bar = (lbl, have, goal, unit, kind) => {
       const r = E("div", "c-bar" + (kind === "max" && have > goal ? " over" : "")), t = E("div", "t");
       t.append(E("b", "", lbl), E("span", "", fnum(have) + (kind === "max" ? " von max. " : kind === "min" ? " von mind. " : " von ") + fnum(goal) + " " + unit));
@@ -445,10 +476,67 @@
     );
     const ok = Math.max(0, base.kcal - kc), op = Math.max(0, base.p - pr);
     const ohne = eat.length && eat.some((r) => r.kcal != null && r.kh_g == null) ? " Bei manchen Einträgen fehlen Kohlenhydrate und Fett, die zählen dort noch nicht mit." : "";
-    body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") + ohne : "Noch nichts eingetragen."));
-    const ret = { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat };
-    body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, 74 kg, etwa 18 % Körperfett (Waage), viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
+    if (isToday) body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") + ohne : "Noch nichts eingetragen."));
+    else {
+      body.appendChild(E("p", "c-hint", (eat.length ? eat.length + (eat.length === 1 ? " Eintrag" : " Einträge") + " an diesem Tag. Antippen in der Liste unten zum Ändern." : "An diesem Tag ist nichts eingetragen.") + ohne));
+      const add = E("button", "btn small-btn", "+ Essen für " + (tagName(ti) === "Gestern" ? "gestern" : tagName(ti)) + " nachtragen"); add.type = "button";
+      add.addEventListener("click", () => window.dispatchEvent(new CustomEvent("tb-add", { detail: { table: "ernaehrung", datum: ti } })));
+      body.appendChild(add);
+    }
+    const ret = isToday ? { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat } : null;
+    if (isToday) body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, 74 kg, etwa 18 % Körperfett (Waage), viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
     return ret;
+  }
+
+  // ---------- Essen: die letzten 14 Tage ----------
+  const METRIKEN = [
+    { k: "kcal", lbl: "kcal", unit: "kcal", col: "kcal", ziel: (b) => b.kcal },
+    { k: "p", lbl: "Eiweiß", unit: "g", col: "protein_g", ziel: (b) => b.p },
+    { k: "b", lbl: "Ballaststoffe", unit: "g", col: "ballast_g", ziel: (b) => b.b, min: true },
+    { k: "kh", lbl: "KH", unit: "g", col: "kh_g", ziel: (b) => b.kh },
+    { k: "f", lbl: "Fett", unit: "g", col: "fett_g", ziel: (b) => b.f },
+  ];
+  function essenVerlauf(parent) {
+    const body = card(parent, "Letzte 14 Tage", "Säule = gegessen, Strich = dein Ziel an dem Tag. Antippen zeigt den Tag oben.");
+    const chips = E("div", "chips f-chips");
+    METRIKEN.forEach((m) => { const c = E("button", "chip" + (m.k === foodMetric ? " active" : ""), m.lbl); c.type = "button"; c.addEventListener("click", () => { foodMetric = m.k; rerender(); }); chips.appendChild(c); });
+    body.appendChild(chips);
+    const M = METRIKEN.find((m) => m.k === foodMetric);
+    const t0 = +todayUTC(), sel = foodDay || iso(t0);
+    const days = d3.range(13, -1, -1).map((i) => {
+      const ti = iso(t0 - i * DAY), { eat, sum } = tagSumme(ti);
+      return { ti, has: eat.length > 0, v: Math.round(sum(M.col) * 10) / 10, z: M.ziel(zielFuer(ti).base) };
+    });
+    const withData = days.filter((d) => d.has);
+    if (!withData.length) { body.appendChild(E("p", "c-text", "In den letzten 14 Tagen ist noch nichts eingetragen.")); return; }
+    const W = 360, H = 190, mL = 34, mR = 6, mT = 16, mB = 34;
+    const x = d3.scaleBand(days.map((d) => d.ti), [mL, W - mR]).padding(0.25);
+    const top = d3.max(days, (d) => Math.max(d.v, d.z)) * 1.12;
+    const tk = niceTicks(0, top);
+    const y = d3.scaleLinear(tk.domain, [H - mB, mT]);
+    const svg = d3.select(body).append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("class", "c-svg f-svg");
+    tk.ticks.forEach((v) => { svg.append("line").attr("x1", mL).attr("x2", W - mR).attr("y1", y(v)).attr("y2", y(v)).attr("class", "c-grid"); svg.append("text").attr("x", mL - 4).attr("y", y(v) + 3).attr("text-anchor", "end").attr("class", "c-axis").text(fnum(v)); });
+    const T = tipOf(body);
+    days.forEach((d) => {
+      const bx = x(d.ti), bw = x.bandwidth();
+      const g = svg.append("g").attr("class", "f-col" + (d.ti === sel ? " sel" : "")).style("cursor", "pointer");
+      g.append("rect").attr("x", bx - 2).attr("width", bw + 4).attr("y", mT).attr("height", H - mB - mT).attr("class", "f-hit");
+      if (d.has) {
+        const off = M.min ? d.v < d.z * 0.9 : d.v > d.z * 1.1;
+        g.append("rect").attr("x", bx).attr("width", bw).attr("y", y(d.v)).attr("height", Math.max(1, y(0) - y(d.v))).attr("rx", 3).attr("class", "f-bar" + (off ? " off" : ""));
+      }
+      g.append("line").attr("x1", bx - 2).attr("x2", bx + bw + 2).attr("y1", y(d.z)).attr("y2", y(d.z)).attr("class", "f-ziel");
+      const dd = pd(d.ti);
+      g.append("text").attr("x", bx + bw / 2).attr("y", H - mB + 13).attr("text-anchor", "middle").attr("class", "c-axis").text(["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][dd.getUTCDay()]);
+      g.append("text").attr("x", bx + bw / 2).attr("y", H - mB + 25).attr("text-anchor", "middle").attr("class", "c-axis").text(dd.getUTCDate() + ".");
+      g.on("click", () => { foodDay = d.ti === iso(t0) ? null : d.ti; rerender(); });
+      onTip(g, T, (ev) => T.show(ev, tagName(d.ti), [{ text: d.has ? `${fnum(d.v)} von ${M.min ? "mind. " : ""}${fnum(d.z)} ${M.unit}` : "nichts eingetragen" }]));
+    });
+    const avg = Math.round(d3.mean(withData, (d) => d.v)), avgZ = Math.round(d3.mean(withData, (d) => d.z));
+    const treffer = withData.filter((d) => M.min ? d.v >= d.z * 0.9 : Math.abs(d.v - d.z) <= d.z * 0.1).length;
+    body.appendChild(E("p", "c-text", `Ø ${fnum(avg)} ${M.unit} pro Tag (Ziel Ø ${fnum(avgZ)}), an ${withData.length} Tagen mit Einträgen. ${M.min ? "Mindestens" : "Im Ziel (±10 %)"}: ${treffer} von ${withData.length} Tagen.`));
+    legend(body, [["var(--hi)", M.min ? "genug (ab 90 %)" : "bis Ziel +10 %"], ["#e07a5f", M.min ? "zu wenig" : "mehr als 10 % drüber"], ["var(--text)", "Ziel"]]);
+    if (foodMetric !== "kcal" && withData.some((d) => d.v === 0)) body.appendChild(E("p", "c-hint", "Bei älteren Einträgen fehlen manche Nährwerte, die Säulen sind dort zu niedrig."));
   }
 
   // ---------- Essen: was heute noch gut passt ----------
@@ -508,6 +596,7 @@
   // ---------- Verteilen auf die Tabs ----------
   function render(cache, view, sport) {
     if (!window.d3) return;
+    lastArgs = [cache, view, sport];
     C = { ...cache, phasen: phasen(cache.zyklus) };
     const box = document.querySelector(`[data-charts="${view}"]`);
     if (!box || box.closest("[hidden]")) return;
@@ -525,8 +614,8 @@
       if (sport === "rad") { rWoche(card(box, "Radminuten pro Woche")); rPuls(card(box, "Puls pro Fahrt")); }
     }
     if (view === "zyklus") zyklusKarten(box);
-    if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); }
+    if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
   }
 
-  window.TBCharts = { render, phasen, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
+  window.TBCharts = { render, phasen, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
 })();
