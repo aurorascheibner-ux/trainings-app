@@ -381,6 +381,25 @@ const PHASE_TIPP = {
   Lutealphase: "Eher Volumen und Technik statt Maximalversuche, Läufe nach Puls. Du brauchst etwa 150 kcal mehr, Hunger ist normal.",
 };
 
+// Karte „Essen heute“: kcal übrig, Eiweiß und Ballaststoffe
+function renderEssenHeute() {
+  const box = $('[data-today="essen"]');
+  if (!box || !window.TBCharts || !window.d3) return;
+  let e;
+  try { e = window.TBCharts.essenHeute(cache); } catch (err) { console.error(err); return; }
+  const set = (k, v) => { const el = box.querySelector(`[data-tf="${k}"]`); if (el) el.innerHTML = v; };
+  const rest = e.ziel.kcal - e.kcal, over = rest < 0;
+  box.classList.toggle("over", over);
+  set("num", fmtNum(Math.abs(rest)));
+  set("unit", over ? "kcal drüber" : "kcal übrig");
+  set("sub", `${fmtNum(e.kcal)} von ${fmtNum(e.ziel.kcal)} kcal · ${e.why.split(",")[0].split(" · ")[0]}`);
+  box.querySelector('[data-tf="ring"]').setAttribute("stroke-dasharray", `${Math.min(100, (e.kcal / e.ziel.kcal) * 100).toFixed(1)} 100`);
+  set("p", `${fmtNum(e.p)}<small> / ${e.ziel.p} g</small>`);
+  set("b", `${fmtNum(e.b)}<small> / ${e.ziel.b} g</small>`);
+  box.querySelector('[data-tf="pbar"]').style.width = Math.min(100, (e.p / e.ziel.p) * 100) + "%";
+  box.querySelector('[data-tf="bbar"]').style.width = Math.min(100, (e.b / e.ziel.b) * 100) + "%";
+}
+
 function renderToday() {
   const t = today();
   const trainings = [
@@ -391,13 +410,10 @@ function renderToday() {
   ];
   $('[data-sum="training"]').textContent = trainings.length ? trainings.join(", ") : "heute noch nichts";
 
-  const food = (cache.ernaehrung || []).filter((r) => r.datum === t);
-  const kcal = food.reduce((a, r) => a + (r.kcal || 0), 0);
-  const prot = food.reduce((a, r) => a + Number(r.protein_g || 0), 0);
-  $('[data-sum="ernaehrung"]').textContent = food.length ? `${fmtNum(kcal)} kcal · ${fmtNum(prot)} g Eiweiß` : "heute noch nichts";
+  renderEssenHeute();
 
   const c = cycleInfo();
-  $('[data-sum="zyklus"]').textContent = c ? `Tag ${c.day} · ${c.phase}` : "noch nichts eingetragen";
+  $('[data-sum="zyklus"]').textContent = c ? `Tag ${c.day} · ${c.phase}` : "Noch nichts eingetragen";
   if (c) {
     const frac = Math.min(1, (c.day - 1) / c.len);
     const track = $("#cycle-track");
@@ -408,7 +424,7 @@ function renderToday() {
     const tip = $("#cycle-tip");
     tip.hidden = !PHASE_TIPP[c.phase];
     tip.textContent = PHASE_TIPP[c.phase] || "";
-    $("#cycle-text").textContent = `Zyklustag ${c.day} · ${c.phase}. ${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
+    $("#cycle-text").textContent = `${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
   }
 
   if (window.TBSupp) window.TBSupp.render($("[data-supp]"), db, cache);

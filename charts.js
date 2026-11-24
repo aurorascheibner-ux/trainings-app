@@ -617,5 +617,14 @@
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
   }
 
-  window.TBCharts = { render, phasen, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
+  // Für die Karte „Essen heute“ auf der Startseite
+  function essenHeute(cache) {
+    C = { ...cache, phasen: phasen(cache.zyklus) };
+    const ti = iso(todayUTC());
+    const { base, why } = zielFuer(ti);
+    const { eat, sum } = tagSumme(ti);
+    return { ziel: base, why, n: eat.length, kcal: Math.round(sum("kcal")), p: Math.round(sum("protein_g")), b: Math.round(sum("ballast_g")) };
+  }
+
+  window.TBCharts = { render, phasen, essenHeute, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
 })();

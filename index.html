@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-theme="moos">
+<html lang="de" data-theme="moos" data-design="glas">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,9 +13,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link id="font-link" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"moos"}catch(e){}document.documentElement.dataset.page=location.hash.slice(1)||"heute"</script>
+  <link rel="stylesheet" href="designs.css">
+  <script>
+    // Design und Farbe vor dem ersten Zeichnen setzen (Design steckt im Namen der Farbe, z. B. "papier-salbei")
+    window.TB_FONTS = {glas:"Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700",papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",stein:"DM+Serif+Display&family=Manrope:wght@400;500;600;700",tinte:"Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500",bento:"Bricolage+Grotesque:opsz,wght@12..96,400..800",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Syne:wght@500;700;800&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600"};
+    (function(){var h=document.documentElement,t="moos";try{t=localStorage.getItem("theme")||"moos"}catch(e){}
+    var d=t.indexOf("-")>0?t.split("-")[0]:"glas";if(!TB_FONTS[d]){d="glas";t="moos"}
+    h.dataset.theme=t;h.dataset.design=d;h.dataset.page=location.hash.slice(1)||"heute";
+    document.getElementById("font-link").href="https://fonts.googleapis.com/css2?family="+TB_FONTS[d]+"&display=swap"})();
+  </script>
 </head>
 <body>
   <!-- Icons: einmal definiert, überall per <use> eingesetzt -->
@@ -103,7 +111,10 @@
         <h2>Optik</h2>
         <button class="icon-btn" value="close" aria-label="Schließen">✕</button>
       </div>
-      <p class="muted small">Wähle dein Farbkonzept. Die Wahl wird auf diesem Handy gespeichert.</p>
+      <p class="muted small">Wähle Design und Farbe. Die Wahl wird auf diesem Handy gespeichert.</p>
+      <h3 class="opt-h">Design</h3>
+      <div id="design-list" class="theme-list design-list"></div>
+      <h3 class="opt-h">Farbe</h3>
       <div id="theme-list" class="theme-list"></div>
       <div class="account" id="account" hidden>
         <h3>Konto</h3>
@@ -145,9 +156,28 @@
   <main id="views">
     <!-- Heute -->
     <section class="view" data-view="heute">
+      <a class="glass today-food" href="#ernaehrung" data-today="essen" aria-label="Zum Essen">
+        <p class="t-label"><svg class="ico"><use href="#i-ernaehrung"/></svg>Essen heute</p>
+        <div class="tf-row">
+          <div class="tf-main"><span class="tf-num" data-tf="num">–</span><span class="tf-unit" data-tf="unit">kcal übrig</span><span class="tf-sub" data-tf="sub"></span></div>
+          <svg class="tf-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="tf-ring-bg" cx="60" cy="60" r="52"/><circle class="tf-ring-fg" data-tf="ring" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/></svg>
+        </div>
+        <div class="tf-bar"><div class="tf-bar-top"><span>Eiweiß</span><span class="num" data-tf="p"></span></div><div class="tf-track"><i data-tf="pbar"></i></div></div>
+        <div class="tf-bar"><div class="tf-bar-top"><span>Ballaststoffe</span><span class="num" data-tf="b"></span></div><div class="tf-track"><i data-tf="bbar"></i></div></div>
+      </a>
+      <div class="grid today-grid">
+        <a class="glass tile" href="#training" data-tile="training" style="--accent: var(--c1)">
+          <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
+          <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
+        </a>
+        <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
+          <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
+          <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
+        </a>
+      </div>
       <a class="glass hero" href="#zyklus" aria-label="Zum Zyklus">
         <p class="eyebrow">Mein Zyklus <span class="chev" aria-hidden="true">›</span></p>
-        <h2>Hallo <em>Aurora</em></h2>
+        <h2 data-sum="zyklus">Noch nichts eingetragen</h2>
         <svg class="curve" viewBox="0 0 300 70" aria-hidden="true">
           <path d="M8 52 C 70 52, 110 18, 150 18 S 240 50, 292 30" class="curve-track" id="cycle-track"/>
           <path d="M8 52 C 70 52, 110 18, 150 18 S 240 50, 292 30" class="curve-done" id="cycle-done" pathLength="100" stroke-dasharray="50 100"/>
@@ -157,24 +187,6 @@
         <p class="muted small" id="cycle-text">Sobald du deinen Zyklus einträgst, siehst du hier, wo du gerade stehst.</p>
         <p class="small cycle-tip" id="cycle-tip" hidden></p>
       </a>
-      <div class="grid">
-        <a class="glass tile" href="#training" data-tile="training" style="--accent: var(--c1)">
-          <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
-          <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
-        </a>
-        <a class="glass tile" href="#ernaehrung" data-tile="ernaehrung" style="--accent: var(--c2)">
-          <span class="ico-wrap"><svg class="ico"><use href="#i-ernaehrung"/></svg></span>
-          <strong>Ernährung</strong><span class="muted small" data-sum="ernaehrung">noch nichts eingetragen</span>
-        </a>
-        <a class="glass tile" href="#zyklus" data-tile="zyklus" style="--accent: var(--c3)">
-          <span class="ico-wrap"><svg class="ico"><use href="#i-zyklus"/></svg></span>
-          <strong>Zyklus</strong><span class="muted small" data-sum="zyklus">noch nichts eingetragen</span>
-        </a>
-        <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
-          <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
-          <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
-        </a>
-      </div>
       <div class="supp-wrap" data-supp></div>
       <div class="charts" data-charts="heute"></div>
     </section>
