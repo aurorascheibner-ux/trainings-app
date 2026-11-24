@@ -574,3 +574,11 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .supp-edit-top b { flex: 1; }
 .supp-edit-top .small-btn { margin-top: 0; }
 .supp-edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+.supp-item { border-top: 1px solid rgba(255,255,255,.08); }
+.supp-line { display: flex; align-items: flex-start; gap: 6px; }
+.supp-item .supp-row { border-top: 0; flex: 1; min-width: 0; }
+.supp-i { flex: none; width: 32px; height: 32px; margin-top: 8px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent); background: none; color: var(--muted); font: italic 700 .95rem var(--serif); cursor: pointer; }
+.supp-i.on { background: var(--hi); border-color: var(--hi); color: var(--bg2); }
+.supp-edit-top .supp-i { margin-top: 0; }
+.supp-wirkung { margin: 0 0 10px 42px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: .85rem; line-height: 1.45; }
+.supp-edit .supp-wirkung { margin: 8px 0 0; }
