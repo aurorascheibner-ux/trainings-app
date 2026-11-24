@@ -6,7 +6,7 @@ const TITLES = {
   training: "Training",
   ernaehrung: "Ernährung",
   zyklus: "Zyklus",
-  befinden: "Befinden",
+  befinden: "Körper",
 };
 
 // ---------- Optik: Design und Farbe ----------

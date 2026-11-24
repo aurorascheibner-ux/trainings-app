@@ -622,3 +622,27 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .opt-h { margin: 18px 0 8px; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .design-sw { display: grid; place-items: center; border-radius: var(--sw-r); font-family: var(--sw-font), serif; font-size: 1.25rem; color: var(--sw-hi); background: var(--sw-bg1); }
 .design-sw::after { display: none; }
+
+/* ---------- Körperwerte ---------- */
+.form-hint { margin: 0 0 12px; }
+.k-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.k-head b { font-size: .95rem; }
+.k-phase { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
+.k-phase i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.k-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.k-val { position: relative; text-align: left; font: inherit; color: inherit; background: rgb(var(--w) / .05); border: 1px solid rgb(var(--w) / .08); border-radius: 14px; padding: 10px 34px 10px 12px; cursor: pointer; min-width: 0; }
+.k-val.on { border-color: var(--hi); box-shadow: inset 0 0 0 1px var(--hi); }
+.k-val .k-l { display: block; font-size: .72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-val .k-n { display: block; font-size: 1.15rem; font-weight: 700; margin-top: 2px; }
+.k-val .k-n small { font-size: .72rem; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.k-val .k-d { display: block; font-size: .72rem; color: var(--muted); margin-top: 1px; }
+.k-val .k-d.gut { color: var(--c2); font-weight: 700; }
+.k-i { display: grid; place-items: center; position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgb(var(--w) / .2); background: transparent; color: var(--muted); font: 700 .75rem/1 var(--sans, inherit); cursor: pointer; padding: 0; }
+.k-info { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: 12px; background: rgb(var(--w) / .06); font-size: .82rem; line-height: 1.45; }
+.k-info b { display: block; margin-bottom: 2px; }
+.k-info .k-r { display: block; margin-top: 6px; color: var(--muted); }
+.k-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin: 0 -4px 6px; padding-left: 4px; scrollbar-width: none; }
+.k-chips::-webkit-scrollbar { display: none; }
+.k-chips button { flex: none; font: inherit; font-size: .78rem; padding: 6px 12px; border-radius: 999px; border: 1px solid rgb(var(--w) / .15); background: transparent; color: var(--muted); cursor: pointer; }
+.k-chips button.on { background: var(--hi); border-color: var(--hi); color: var(--on-hi); font-weight: 700; }
+.k-tips { margin: 0; padding-left: 18px; font-size: .85rem; line-height: 1.55; }

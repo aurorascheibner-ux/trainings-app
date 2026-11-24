@@ -414,6 +414,9 @@
     const sick = (C.befinden || []).find((r) => r.status === "krank" && r.datum_von <= ti && (!r.datum_bis || ti <= r.datum_bis));
     const cur = C.phasen.find((p) => p.start <= ti && ti <= p.ende);
     const base = { ...(trained ? FOOD.train : FOOD.rest), b: 30 };
+    // Gerechnet wurde mit 74 kg; pro kg mehr oder weniger etwa 15 kcal (gedeckelt auf ±150)
+    const w = letzteWaage();
+    if (w) base.kcal += Math.max(-150, Math.min(150, Math.round((15 * (Number(w.gewicht_kg) - 74)) / 10) * 10));
     let why = trained ? "Trainingstag" : ti === iso(todayUTC()) ? "Ruhetag, wird zum Trainingstag, sobald du Training einträgst" : "Ruhetag";
     if (sick) { Object.assign(base, { kcal: 2400, kh: 310 }); why = "Krank: auf Erhaltung essen, kein Defizit, viel trinken"; }
     else if (cur && cur.phase === "Periode") { base.kcal = trained ? 2500 : 2200; base.kh += 50; why += " · Periode: auf Erhaltung"; }
@@ -484,7 +487,9 @@
       body.appendChild(add);
     }
     const ret = isToday ? { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat } : null;
-    if (isToday) body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, 74 kg, etwa 18 % Körperfett (Waage), viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
+    const wg = letzteWaage();
+    const kTxt = wg ? kfmt(wg.gewicht_kg, 1) + " kg" + (wg.koerperfett_pct != null ? ", " + kfmt(wg.koerperfett_pct, 1) + " % Körperfett" : "") + " (Waage vom " + dm(+pd(wg.datum)) + ")" : "74 kg, etwa 18 % Körperfett (Waage)";
+    if (isToday) body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, " + kTxt + ", viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
     return ret;
   }
 
@@ -593,6 +598,133 @@
     body.appendChild(E("p", "c-hint", "Mengen wie bei deinem letzten Eintrag. „Idee“ sind Klassiker mit viel Eiweiß oder Ballaststoffen, Werte ungefähr."));
   }
 
+  // ---------- Körper: Werte der Waage ----------
+  // dir: 1 = mehr ist besser, -1 = weniger ist besser, 0 = neutral. noise: kleiner ist Messrauschen.
+  const KW = [
+    { k: "gewicht_kg", l: "Gewicht", u: "kg", d: 2, dir: 0, noise: 0.4,
+      t: "Dein Gesamtgewicht. Es schwankt im Lauf eines Tages und im Zyklus oft um 1 bis 2 kg, vor allem durch Wasser. Vor der Periode ist es meist am höchsten.",
+      r: "Aussagekräftig ist der Verlauf über Wochen, nicht der einzelne Tag." },
+    { k: "bmi", l: "BMI", u: "", d: 1, dir: 0, noise: 0.2,
+      t: "Gewicht geteilt durch Größe zum Quadrat. Der BMI unterscheidet nicht zwischen Muskeln und Fett, bei viel Muskeln ist er deshalb höher, ohne dass das schlecht ist.",
+      r: "Üblicher Bereich: 18,5 bis 24,9." },
+    { k: "koerperfett_pct", l: "Körperfett", u: "%", d: 1, dir: -1, noise: 0.6,
+      t: "Wie viel Prozent deines Gewichts Fett ist. Fett ist nötig: für Hormone, den Zyklus und als Energiespeicher. Sinkt es zu stark, kann die Periode ausbleiben.",
+      r: "Frauen um 26: gesund etwa 21 bis 32 %, sportlich etwa 16 bis 24 %. Unter etwa 15 % wird es für den Zyklus kritisch." },
+    { k: "muskelrate_pct", l: "Muskelrate", u: "%", d: 1, dir: 1, noise: 0.6,
+      t: "Anteil aller Muskeln am Gewicht, samt dem Wasser in den Muskeln. Steigt, wenn Muskeln wachsen oder Fett weniger wird.",
+      r: "Die Waage rechnet das selbst aus, deshalb zählt vor allem dein eigener Verlauf." },
+    { k: "fettfrei_kg", l: "Fettfreies Gewicht", u: "kg", d: 1, dir: 1, noise: 0.5,
+      t: "Alles außer Fett: Muskeln, Knochen, Organe und Wasser. Daraus wird auch dein Grundumsatz und dein Kalorienziel berechnet.",
+      r: "Steigt es bei gleichem Gewicht, hast du Muskeln auf- und Fett abgebaut." },
+    { k: "unterhautfett_pct", l: "Unterhautfett", u: "%", d: 1, dir: -1, noise: 0.6,
+      t: "Der Teil des Körperfetts direkt unter der Haut. Gesundheitlich eher harmlos. Für ein sichtbares Sixpack ist er der entscheidende Wert, weil er über den Bauchmuskeln liegt.",
+      r: "Er macht den größten Teil deines Körperfetts aus und sinkt mit ihm." },
+    { k: "viszeral", l: "Viszerales Fett", u: "", d: 1, dir: -1, noise: 0.5,
+      t: "Fett im Bauchraum um die Organe. Davon zu viel ist ungünstig für Herz und Stoffwechsel. Die Zahl ist eine Stufe, keine Kilo oder Prozent.",
+      r: "Stufe 1 bis 9 gilt als gesund, ab 10 als erhöht." },
+    { k: "wasser_pct", l: "Körperwasser", u: "%", d: 1, dir: 1, noise: 1,
+      t: "Anteil Wasser im Körper. Muskeln enthalten viel Wasser, Fett wenig. Der Wert schwankt mit Trinken, Salz, Training und Zyklus. Die Waage misst übrigens über das Wasser, deshalb wackeln an einem „Wassertag“ auch Fett und Muskeln mit.",
+      r: "Frauen: üblich etwa 45 bis 60 %." },
+    { k: "skelettmuskel_pct", l: "Skelettmuskeln", u: "%", d: 1, dir: 1, noise: 0.6,
+      t: "Die Muskeln, die du bewegst und trainierst, also ohne Herz und Darm. Der beste Wert, um zu sehen, ob Krafttraining und Bouldern Muskeln aufbauen.",
+      r: "Waagen rechnen das sehr unterschiedlich. Vergleich nur mit deinen eigenen Messungen." },
+    { k: "muskelmasse_kg", l: "Muskelmasse", u: "kg", d: 1, dir: 1, noise: 0.5,
+      t: "Gewicht aller Muskeln samt Wasser darin. Muskelaufbau geht langsam, realistisch sind bei Frauen etwa 0,25 bis 0,5 kg im Monat.",
+      r: "Kurze Sprünge nach oben oder unten sind meist Wasser." },
+    { k: "knochen_kg", l: "Knochenmasse", u: "kg", d: 1, dir: 0, noise: 0.2,
+      t: "Geschätztes Gewicht der Knochenmineralien. Die Waage leitet das vor allem aus deinem Gewicht ab, es ändert sich kaum.",
+      r: "Für echte Knochendichte braucht es eine Messung beim Arzt." },
+    { k: "protein_pct", l: "Proteine", u: "%", d: 1, dir: 1, noise: 0.4,
+      t: "Geschätzter Eiweißanteil im Körper, vor allem in Muskeln. Hängt eng mit der Muskelmasse zusammen.",
+      r: "Waagen werten etwa 16 bis 20 % als normal." },
+    { k: "grundumsatz_kcal", l: "Grundumsatz", u: "kcal", d: 0, dir: 0, noise: 15,
+      t: "Was dein Körper in völliger Ruhe am Tag verbraucht. Steigt mit mehr Muskeln. Training und Alltag kommen obendrauf.",
+      r: "Die App nutzt deine Werte für das Kalorienziel." },
+    { k: "bio_alter", l: "Biologisches Alter", u: "Jahre", d: 0, dir: -1, noise: 1,
+      t: "Eine grobe Schätzung der Waage aus Fett, Muskeln und Grundumsatz. Eher Spielerei als Medizin.",
+      r: "Liegt es unter deinem echten Alter, sieht es gut aus." },
+  ];
+  let kwSel = "gewicht_kg", kwInfo = null;
+  const kfmt = (v, d) => Number(v).toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  function koerper(box, missing) {
+    if (missing) return; // Hinweis auf die SQL-Datei steht in der Liste darunter
+    const rows = (C.koerper || []).slice().sort((a, b) => a.datum.localeCompare(b.datum) || String(a.created_at).localeCompare(String(b.created_at)));
+    if (!rows.length) {
+      const b = card(box, "Körperwerte", "Hier siehst du die Werte deiner Waage über die Zeit.");
+      b.appendChild(E("p", "c-hint", "Noch keine Messung. Tipp unten auf +, oder schick mir einen Screenshot deiner Waage."));
+      tipps(box);
+      return;
+    }
+    const last = rows[rows.length - 1];
+    const prevOf = (k) => { for (let i = rows.length - 2; i >= 0; i--) if (rows[i][k] != null) return rows[i]; return null; };
+    const body = card(box, "Letzte Messung", "Tippe auf einen Wert für den Verlauf, auf ⓘ für die Erklärung.");
+    const head = E("div", "k-head");
+    head.appendChild(E("b", "", pd(last.datum).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", timeZone: "UTC" })));
+    const ph = phaseOn(last.datum);
+    if (ph) { const s = E("span", "k-phase"), i = E("i"); i.style.background = BANDC[ph]; s.append(i, document.createTextNode(ph)); head.appendChild(s); }
+    if (rows.length > 1) head.appendChild(E("span", "k-phase", "Vergleich mit " + dm(+pd(rows[rows.length - 2].datum))));
+    body.appendChild(head);
+    const grid = E("div", "k-grid");
+    KW.filter((m) => last[m.k] != null).forEach((m) => {
+      const v = Number(last[m.k]), p = prevOf(m.k);
+      const btn = E("button", "k-val" + (kwSel === m.k ? " on" : "")); btn.type = "button";
+      btn.appendChild(E("span", "k-l", m.l));
+      const n = E("span", "k-n", kfmt(v, m.d)); if (m.u) n.appendChild(E("small", "", m.u)); btn.appendChild(n);
+      if (p) {
+        const diff = v - Number(p[m.k]);
+        const small = Math.abs(diff) < m.noise;
+        const txt = small ? "≈ gleich" : (diff > 0 ? "▲ +" : "▼ −") + kfmt(Math.abs(diff), m.d) + (m.u && m.u !== "Jahre" ? " " + m.u : "");
+        btn.appendChild(E("span", "k-d" + (!small && m.dir && Math.sign(diff) === m.dir ? " gut" : ""), txt));
+      } else btn.appendChild(E("span", "k-d", "erste Messung"));
+      const ib = E("span", "k-i", "i"); ib.setAttribute("role", "button"); ib.setAttribute("aria-label", "Was ist " + m.l + "?");
+      btn.appendChild(ib);
+      btn.addEventListener("click", (ev) => {
+        if (ev.target === ib) kwInfo = kwInfo === m.k ? null : m.k;
+        else { kwSel = m.k; }
+        rerender();
+      });
+      grid.appendChild(btn);
+    });
+    // Erklärung direkt unter der Zeile mit dem angetippten Wert
+    const tiles = [...grid.children], ii = KW.filter((m) => last[m.k] != null).findIndex((m) => m.k === kwInfo);
+    if (ii >= 0) {
+      const m = KW.find((x) => x.k === kwInfo), info = E("p", "k-info");
+      info.appendChild(E("b", "", m.l)); info.appendChild(document.createTextNode(m.t)); info.appendChild(E("span", "k-r", m.r));
+      tiles[Math.min(ii | 1, tiles.length - 1)].after(info);
+    }
+    body.appendChild(grid);
+    if (last.notiz) body.appendChild(E("p", "c-hint", "Notiz: " + last.notiz));
+    if (ph === "Lutealphase" || ph === "Periode") body.appendChild(E("p", "c-hint", "Gemessen in der " + (ph === "Periode" ? "Periode" : "Lutealphase") + ": Gewicht und Wasser sind dann oft etwas höher, Fett und Muskeln wackeln mit. Nicht überbewerten."));
+
+    // Verlauf des gewählten Werts
+    const have = KW.filter((m) => rows.some((r) => r[m.k] != null));
+    if (!have.some((m) => m.k === kwSel)) kwSel = have[0].k;
+    const m = KW.find((x) => x.k === kwSel);
+    const vb = card(box, "Verlauf: " + m.l, "Farbige Flächen sind deine Zyklusphasen. Achte auf die Richtung über mehrere Wochen.");
+    const chips = E("div", "k-chips");
+    have.forEach((x) => { const c = E("button", x.k === kwSel ? "on" : "", x.l); c.type = "button"; c.addEventListener("click", () => { kwSel = x.k; rerender(); }); chips.appendChild(c); });
+    vb.appendChild(chips);
+    const pts = rows.filter((r) => r[m.k] != null).map((r) => ({ d: pd(r.datum), v: Number(r[m.k]), label: kfmt(r[m.k], m.d) + (m.u ? " " + m.u : "") + (phaseOn(r.datum) ? " · " + phaseOn(r.datum) : "") }));
+    const vs = pts.map((p) => p.v), span = Math.max(m.noise * 4, Math.max(...vs) - Math.min(...vs));
+    const mid = (Math.max(...vs) + Math.min(...vs)) / 2, nt = niceTicks(mid - span * 0.65, mid + span * 0.65);
+    const plot = E("div"); vb.appendChild(plot);
+    chart(plot, { kind: "line", phases: true, left: { domain: nt.domain, ticks: nt.ticks, fmt: (t) => kfmt(t, Number.isInteger(t) ? 0 : 1) }, series: [{ name: m.l, color: "var(--c2)", pts }] });
+    if (pts.length < 3) vb.appendChild(E("p", "c-hint", "Ab etwa 3 bis 4 Messungen siehst du eine echte Richtung."));
+    tipps(box);
+  }
+  function tipps(box) {
+    const b = card(box, "So misst du vergleichbar");
+    const ul = E("ul", "k-tips");
+    ["Einmal pro Woche, am besten immer am gleichen Wochentag.", "Morgens nach der Toilette, vor Essen und Trinken.", "Nicht direkt nach dem Training oder der Sauna.", "Barfuß und mit trockenen Füßen.", "Einmal im Monat alle Messungen an Claude schicken, auch gern als Screenshots."].forEach((t) => ul.appendChild(E("li", "", t)));
+    b.appendChild(ul);
+  }
+  // Letzte Messung mit Gewicht (für Kalorienziel), höchstens 60 Tage alt
+  function letzteWaage() {
+    const lim = iso(+todayUTC() - 60 * DAY);
+    return (C.koerper || []).filter((r) => r.gewicht_kg != null && r.datum >= lim).sort((a, b) => b.datum.localeCompare(a.datum))[0] || null;
+  }
+
   // ---------- Verteilen auf die Tabs ----------
   function render(cache, view, sport) {
     if (!window.d3) return;
@@ -615,6 +747,7 @@
     }
     if (view === "zyklus") zyklusKarten(box);
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
+    if (view === "befinden") koerper(box, cache._missing && cache._missing.koerper);
   }
 
   // Für die Karte „Essen heute“ auf der Startseite
