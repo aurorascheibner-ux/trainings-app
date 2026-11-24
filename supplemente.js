@@ -12,6 +12,21 @@
     { name: "Eisen", menge: "Dosis von der Ärztin", wann: "morgens", regel: "taeglich", sort: 7, aktiv: false, info: "Pausiert bis zum Bluttest mit Ferritin. Dann morgens nüchtern mit Vitamin C, nicht mit Kaffee, Tee oder Milch." },
     { name: "Vitamin C", menge: "zum Eisen", wann: "morgens", regel: "taeglich", sort: 8, aktiv: false, info: "Zusammen mit dem Eisen, verbessert die Aufnahme." },
   ];
+  // Was es im Körper macht (Antippen auf ⓘ). Schlüssel: Name in Kleinbuchstaben.
+  const WIRKUNG = {
+    "kreatin": "Füllt den schnellen Energiespeicher im Muskel auf. Das hilft bei kurzen, harten Belastungen wie Sätzen oder Boulderzügen und bringt über Wochen etwas mehr Kraft. Der Muskel speichert dabei etwas Wasser. Auch das Gehirn nutzt Kreatin, aber ob du dort einen Nutzen merkst, ist noch nicht sicher.",
+    "vitamin d": "Hilft dem Darm, Calcium aufzunehmen, und ist damit wichtig für die Knochen. Es spielt auch für Muskeln und Abwehrkräfte eine Rolle. Im Winter bildet die Haut hier kaum welches.",
+    "omega-3": "Baustein der Zellwände, vor allem in Gehirn und Augen. Es dämpft Entzündungen und senkt die Blutfette.",
+    "citrullin": "Der Körper macht daraus Stickstoffmonoxid. Dadurch weiten sich die Blutgefäße und der Muskel wird besser durchblutet. Das kann ein paar Wiederholungen mehr bringen, der Effekt ist aber klein.",
+    "proteinpulver": "Liefert Eiweiß, den Baustoff für Muskeln. Es wirkt nicht anders als Eiweiß aus dem Essen, ist nur bequemer.",
+    "magnesium": "Wird für Muskel- und Nervenarbeit und für die Energiegewinnung gebraucht. Bei einem Mangel hilft es gegen Krämpfe.",
+    "eisen": "Steckt im roten Blutfarbstoff und bringt Sauerstoff zu den Muskeln. Bei einem Mangel bist du müde und hast weniger Ausdauer. Der Ferritin-Wert zeigt, wie voll dein Speicher ist.",
+    "vitamin c": "Hilft, Eisen aus der Nahrung oder aus Tabletten aufzunehmen. Außerdem stärkt es die Abwehr und wird für das Bindegewebe gebraucht.",
+  };
+  const wirkung = (s) => WIRKUNG[String(s.name || "").trim().toLowerCase()] || "";
+  const offen = new Set(); // IDs mit aufgeklapptem Text
+  const infoBtn = (s) => wirkung(s) ? `<button type="button" class="supp-i${offen.has(s.id) ? " on" : ""}" data-supp-i="${esc(s.id)}" aria-expanded="${offen.has(s.id)}" aria-label="Was macht ${esc(s.name)}?">i</button>` : "";
+  const infoText = (s) => offen.has(s.id) && wirkung(s) ? `<p class="supp-wirkung">${esc(wirkung(s))}</p>` : "";
   const WANN = [["morgens", "Morgens"], ["essen", "Zum Essen"], ["training", "Vor dem Training"], ["abends", "Abends"]];
   const REGEL = [["taeglich", "jeden Tag"], ["winter", "Oktober bis März"], ["training", "an Trainingstagen"], ["protein", "wenn Eiweiß fehlt"]];
   const EIWEISS_ZIEL = 130, LUECKE = 25;
@@ -72,10 +87,11 @@
       const rs = rows.filter((r) => r.s.wann === k && (edit || r.s.aktiv));
       if (!rs.length) return "";
       return `<p class="supp-when">${lbl}</p>` + rs.map(({ s, f, g }) => edit ? editRow(s) : `
+        <div class="supp-item"><div class="supp-line">
         <button type="button" class="supp-row${g ? " on" : ""}${f.due ? "" : " soft"}" data-supp-tick="${esc(s.id)}" aria-pressed="${g}">
           <span class="supp-box">${g ? "✓" : ""}</span>
           <span class="supp-main"><b>${esc(s.name)}</b> <span class="supp-menge">${esc(s.menge)}</span>
-          <span class="supp-info">${esc(f.why || s.info || "")}</span></span></button>`).join("");
+          <span class="supp-info">${esc(f.why || s.info || "")}</span></span></button>${infoBtn(s)}</div>${infoText(s)}</div>`).join("");
     }).join("");
     const paused = plan.filter((s) => !s.aktiv);
     return `<div class="glass c-card supp">
@@ -89,10 +105,10 @@
   const opts = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("");
   function editRow(s) {
     return `<div class="supp-edit${s.aktiv ? "" : " paused"}" data-supp-id="${esc(s.id)}">
-      <div class="supp-edit-top"><b>${esc(s.name)}</b>
+      <div class="supp-edit-top"><b>${esc(s.name)}</b>${infoBtn(s)}
         <button type="button" class="btn ghost small-btn" data-supp-toggle>${s.aktiv ? "Pausieren" : "Aktivieren"}</button>
         <button type="button" class="icon-btn" data-supp-del aria-label="${esc(s.name)} löschen">✕</button></div>
-      <div class="supp-edit-grid">
+      ${infoText(s)}<div class="supp-edit-grid">
         <label class="field"><span>Menge</span><input type="text" data-supp-f="menge" value="${esc(s.menge)}"></label>
         <label class="field"><span>Wann</span><select data-supp-f="wann">${opts(WANN, s.wann)}</select></label>
         <label class="field"><span>Wie oft</span><select data-supp-f="regel">${opts(REGEL, s.regel)}</select></label>
@@ -121,6 +137,8 @@
   document.addEventListener("click", async (e) => {
     if (!el || !el.contains(e.target) || busy) return;
     const tag = iso(Date.now());
+    const ib = e.target.closest("[data-supp-i]");
+    if (ib) { const id = ib.dataset.suppI; offen.has(id) ? offen.delete(id) : offen.add(id); draw(); return; }
     const tick = e.target.closest("[data-supp-tick]");
     if (tick) {
       const s = plan.find((x) => x.id === tick.dataset.suppTick); if (!s) return;
