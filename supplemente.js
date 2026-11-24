@@ -102,7 +102,7 @@
       <div class="supp-head"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="true"><h3 class="c-title">Supplemente</h3>${status}<span class="supp-chev up">⌄</span></button><button type="button" class="btn ghost small-btn" data-supp-edit>${edit ? "Fertig" : "Bearbeiten"}</button></div>
       ${gruppen}
       ${edit ? addForm() : `<div class="supp-week">${woche.map((w) => `<span title="${w.d}"><i style="--q:${w.q == null ? 0 : w.q}" class="${w.q == null ? "none" : ""}"></i>${w.wd}</span>`).join("")}</div>
-      <p class="c-hint">Die Woche zeigt, wie viel von den täglichen Supplementen du genommen hast.${paused.length ? ` Pausiert: ${esc(paused.map((s) => s.name).join(", "))}.` : ""} Kein Ersatz für ärztlichen Rat.</p>`}
+      ${paused.length ? `<p class="c-hint">Pausiert: ${esc(paused.map((s) => s.name).join(", "))}</p>` : ""}`}
     </div>`;
   }
   const opts = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${l}</option>`).join("");

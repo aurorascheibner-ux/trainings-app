@@ -631,7 +631,6 @@ function openForm(table, rows = null, preset = null) {
     // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
     if (t.sets && f.name === "uebung") return (rows ? "" : `<details class="diktat"${preset ? "" : " open"}><summary>Diktieren oder einfügen</summary>
       <label class="field"><textarea name="diktat_text" rows="4" placeholder="z. B. Bankdrücken 3 mal 55, 9 mal 45, 3 mal 55. Kniebeuge 10 mal 50 …"></textarea></label>
-      <p class="muted small">Tipp auf „Sprechen“ und sag dein Training wie in einer Nachricht. Oder füg deine Notiz ein. Dann „Übernehmen“.</p>
       <button type="button" class="btn ghost small-btn" id="diktat-mic" hidden>🎤 Sprechen</button>
       <button type="button" class="btn small-btn" id="diktat-go">Übernehmen</button><p class="small" data-diktat-msg></p></details>`) + `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);

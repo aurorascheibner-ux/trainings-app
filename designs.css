@@ -200,16 +200,16 @@
 [data-design="beton"] .icon-btn.glass { border-radius: 0; }
 
 /* ---------- Bauhaus: Kunst statt App ---------- */
-[data-design="bauhaus"] { --serif: "Syne", system-ui, sans-serif; --sans: "Work Sans", system-ui, sans-serif; --radius: 0px; }
+[data-design="bauhaus"] { --serif: "Jost", system-ui, sans-serif; --sans: "Work Sans", system-ui, sans-serif; --radius: 0px; }
 [data-design="bauhaus"] .glow { display: block; overflow: hidden; background: none; }
 [data-design="bauhaus"] .glow::before { content: ""; position: absolute; right: -80px; top: -80px; width: 240px; height: 240px; border-radius: 50%; background: var(--red); }
 [data-design="bauhaus"] .glow::after { content: ""; position: absolute; left: -30px; bottom: 90px; width: 0; height: 0; border-left: 80px solid transparent; border-right: 80px solid transparent; border-bottom: 140px solid var(--yellow); opacity: .85; }
-[data-design="bauhaus"] .topbar h1 { font-weight: 800; letter-spacing: -.02em; line-height: .92; max-width: 78%; }
+[data-design="bauhaus"] .topbar h1 { font-weight: 600; letter-spacing: .01em; line-height: 1.05; max-width: 78%; }
 [data-design="bauhaus"] .date { font-weight: 600; color: var(--text); }
-[data-design="bauhaus"] .c-title, [data-design="bauhaus"] .tile strong, [data-design="bauhaus"] .hero h2, [data-design="bauhaus"] .entry strong, [data-design="bauhaus"] .sheet h2 { font-weight: 800; }
-[data-design="bauhaus"] .eyebrow, [data-design="bauhaus"] .t-label, [data-design="bauhaus"] .supp-when, [data-design="bauhaus"] .section-h { font-family: var(--serif); font-weight: 700; color: inherit; }
+[data-design="bauhaus"] .c-title, [data-design="bauhaus"] .tile strong, [data-design="bauhaus"] .hero h2, [data-design="bauhaus"] .entry strong, [data-design="bauhaus"] .sheet h2 { font-weight: 600; letter-spacing: .01em; }
+[data-design="bauhaus"] .eyebrow, [data-design="bauhaus"] .t-label, [data-design="bauhaus"] .supp-when, [data-design="bauhaus"] .section-h { font-family: var(--serif); font-weight: 600; letter-spacing: .14em; color: inherit; }
 [data-design="bauhaus"] .today-food { background: var(--blue); color: var(--on-color); --text: var(--on-color); --muted: color-mix(in srgb, var(--on-color) 72%, transparent); --w: 255 255 255; --hi: var(--yellow); border-radius: 0 0 0 80px; }
-[data-design="bauhaus"] .tf-num { font-weight: 800; font-size: 2.9rem; letter-spacing: -.02em; line-height: .9; }
+[data-design="bauhaus"] .tf-num { font-weight: 600; font-size: 2.9rem; letter-spacing: 0; line-height: .95; }
 [data-design="bauhaus"] .tf-ring circle { stroke-width: 22; stroke-linecap: butt; }
 [data-design="bauhaus"] .tf-ring-fg { stroke: var(--red); }
 [data-design="bauhaus"] .tf-track { border-radius: 0; height: 12px; }
@@ -224,8 +224,19 @@
 [data-design="bauhaus"] .btn { border-radius: 0; background: var(--blue); color: var(--on-color); }
 [data-design="bauhaus"] .btn.ghost { background: rgb(var(--w) / .08); color: var(--text); }
 [data-design="bauhaus"] .fab { background: var(--red); color: var(--on-color); }
-[data-design="bauhaus"] .tabbar { background: #1a1a1a; border-radius: 0; --muted: #8a8578; }
-[data-design="bauhaus"] .tabbar a.active, [data-design="bauhaus"] .tabbar a.active .ico { color: var(--yellow); }
+/* Leiste (Wunsch 24.11.): helle Karte mit dreifarbigem Streifen, der aktive Bereich steht auf einer eigenen Grundform */
+[data-design="bauhaus"] .tabbar { background: var(--card); border: 2px solid var(--text); border-radius: 0; box-shadow: 6px 6px 0 var(--text); backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; }
+[data-design="bauhaus"] .tabbar::before { content: ""; position: absolute; left: -2px; right: -2px; top: -9px; height: 7px; background: linear-gradient(90deg, var(--red) 0 33.3%, var(--yellow) 33.3% 66.6%, var(--blue) 66.6%); }
+[data-design="bauhaus"] .tabbar a { position: relative; z-index: 0; font-family: var(--serif); font-weight: 500; letter-spacing: .04em; color: var(--muted); }
+[data-design="bauhaus"] .tabbar .ico { color: var(--text); }
+[data-design="bauhaus"] .tabbar a.active { color: var(--text); font-weight: 600; }
+[data-design="bauhaus"] .tabbar a.active .ico { color: var(--on-color); --fill: transparent; }
+[data-design="bauhaus"] .tabbar a.active::before { content: ""; position: absolute; z-index: -1; top: 50%; left: 50%; width: 38px; height: 38px; transform: translate(-50%, -78%); background: var(--red); border-radius: 50%; }
+[data-design="bauhaus"] .tabbar a.active:nth-child(2)::before { background: var(--blue); border-radius: 0; width: 34px; height: 34px; }
+[data-design="bauhaus"] .tabbar a.active:nth-child(3)::before { background: var(--yellow); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 44px; height: 40px; transform: translate(-50%, -76%); }
+[data-design="bauhaus"] .tabbar a.active:nth-child(3) .ico { color: #1a1a1a; }
+[data-design="bauhaus"] .tabbar a.active:nth-child(4)::before { background: var(--blue); }
+[data-design="bauhaus"] .tabbar a.active:nth-child(5)::before { background: var(--red); border-radius: 0 50% 50% 0; }
 [data-design="bauhaus"] .chip, [data-design="bauhaus"] .z-chip { border-radius: 0; }
 [data-design="bauhaus"] .chip.active { background: var(--red); color: var(--on-color); }
 [data-design="bauhaus"] .field input, [data-design="bauhaus"] .field select, [data-design="bauhaus"] .field textarea { border-radius: 0; box-shadow: none; }

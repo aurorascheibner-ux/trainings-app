@@ -244,36 +244,23 @@
       if (gi(best) >= 0) svg.append("text").attr("x", bx + bw / 2).attr("y", y(rs.length) - 6).attr("text-anchor", "middle").attr("class", "c-val").text(String(best.max_grad).trim());
       svg.append("text").attr("x", bx + bw / 2).attr("y", H - 8).attr("text-anchor", "middle").attr("class", "c-axis").text(dm(+pd(wk)));
     });
-    el.appendChild(E("p", "c-hint", "Ein Stück pro Session, oben der schwerste Boulder der Woche. Woche ab Montag."));
   }
 
   // ---------- Kraft ----------
-  const BW = 75; // Körpergewicht für die Klimmzug-Schätzung
-  const ATH = "Vergleich: Kraftsportlerinnen (Strength Level, 75 kg Körpergewicht), nicht Frauen allgemein. Band = „Intermediate“ (etwa die Mitte) bis „Advanced“ (etwa die stärksten 20 %).";
-  const NORMS = {
-    "Bankdrücken": { lo: 49, hi: 58, color: "#7fc79a", who: "Frauen 20–29 allgemein, 75 kg", hint: "Vergleich: Cooper Institute, Frauen 20–29 aus Gesundheitschecks (gemessen am Gerät, nicht mit Langhantel)." },
-    "Kniebeugen": { lo: 84, hi: 113, color: "#e58aa8", who: "Kraftsportlerinnen", hint: ATH },
-    "Rumänisches Kreuzheben": { lo: 73, hi: 98, color: "#e58aa8", who: "Kraftsportlerinnen", hint: ATH },
-    "Klimmzug": { lo: 8, hi: 24, bw: true, color: "#e58aa8", who: "Kraftsportlerinnen, Zusatzgewicht", hint: ATH + " Werte beziehen sich auf das Zusatzgewicht." },
-  };
-  const NOCMP = new Set(["Kniebeugen", "Rumänisches Kreuzheben", "Klimmzug"]);
-  const e1rm = (w, r) => w * (1 + r / 30);
-
   function setChart(el, u, rows, mode) {
-    const norm = mode === "kg" ? NORMS[u] : null;
     const val = (r) => mode === "sec" ? Number(r.dauer_s) || 0 : mode === "kg" ? Number(r.gewicht_kg) || 0 : Number(r.wdh) || 0;
     let dates = [...new Set(rows.map((r) => r.datum))].sort();
     const cut = dates.length > 8; if (cut) dates = dates.slice(-8);
     const groups = dates.map((d) => {
       const rs = rows.filter((r) => r.datum === d).sort((a, b) => Number(a.satz) - Number(b.satz));
-      let est = null;
-      if (norm) { const c = rs.filter((r) => Number(r.wdh) > 0 && Number(r.wdh) <= 12).map((r) => norm.bw ? e1rm((Number(r.gewicht_kg) || 0) + BW, Number(r.wdh)) - BW : e1rm(Number(r.gewicht_kg) || 0, Number(r.wdh))); if (c.length) est = Math.round(d3.max(c)); }
-      return { d, date: pd(d), rs, est };
+      // Ø Gewicht an dem Tag (Wunsch 24.11.: statt Vergleichswerten eine Linie durch die Säulen)
+      const avg = mode === "kg" && rs.length ? d3.mean(rs, (r) => Number(r.gewicht_kg) || 0) : null;
+      return { d, date: pd(d), rs, avg };
     });
-    const nMax = d3.max(groups, (g) => g.rs.length) || 1, need = (nMax * 24 + (nMax - 1) * 3 + (norm ? 22 : 0)) / 0.8;
+    const nMax = d3.max(groups, (g) => g.rs.length) || 1, need = (nMax * 24 + (nMax - 1) * 3) / 0.8;
     // Die Achse links bleibt stehen, auch wenn man die Balken seitlich wischt
     const AX = 36, W0 = Math.max(244, (Math.round(el.clientWidth) || 360) - AX), W = Math.max(W0, Math.ceil(10 + dates.length * need)), H = 230;
-    const vmax = d3.max([...groups.flatMap((g) => g.rs.map(val)), ...groups.map((g) => g.est || 0), norm ? norm.hi : 0]) || 1;
+    const vmax = d3.max(groups.flatMap((g) => g.rs.map(val))) || 1;
     const t = niceTicks(0, vmax * 1.2);
     const row = d3.select(el).append("div").attr("class", "c-yrow");
     const ax = row.append("svg").attr("class", "c-yaxis").attr("width", AX).attr("height", H).attr("viewBox", `0 0 ${AX} ${H}`);
@@ -293,12 +280,19 @@
       const pad = (x.step() - x.bandwidth()) / 2;
       svg.append("rect").attr("x", x(g.d) - pad).attr("width", x.step()).attr("y", y(t.ticks[t.ticks.length - 1])).attr("height", y(0) - y(t.ticks[t.ticks.length - 1])).style("fill", BANDC[ph]).style("opacity", 0.22);
     });
-    if (norm) svg.append("rect").attr("x", m.l).attr("width", W - m.r - m.l).attr("y", y(norm.hi)).attr("height", y(norm.lo) - y(norm.hi)).style("fill", norm.color).style("opacity", 0.18);
     const T = tipOf(el), base = y(0);
     let anySick = false;
+    // Platz rechts neben den Säulen für den Ø-Punkt, die Linie liegt hinter den Säulen
+    const RES = mode === "kg" ? 14 : 0;
     groups.forEach((g) => {
-      const gx = x(g.d), gw = x.bandwidth(), n = g.rs.length, res = g.est != null ? 22 : 0;
-      const bw = Math.min(38, Math.max(13, (gw - res - (n - 1) * 3) / n)), off = gx + (gw - res - (n * bw + (n - 1) * 3)) / 2, right = off + n * bw + (n - 1) * 3;
+      const gx = x(g.d), gw = x.bandwidth(), n = g.rs.length;
+      g.bw = Math.min(38, Math.max(13, (gw - RES - (n - 1) * 3) / n)); g.off = gx + (gw - RES - (n * g.bw + (n - 1) * 3)) / 2;
+      g.ax = g.off + n * g.bw + (n - 1) * 3 + RES / 2 + 2;
+    });
+    const av = groups.filter((g) => g.avg != null && g.avg > 0);
+    if (av.length > 1) svg.append("path").attr("d", d3.line().x((g) => g.ax).y((g) => y(g.avg)).curve(d3.curveMonotoneX)(av)).attr("class", "c-avg");
+    groups.forEach((g) => {
+      const gx = x(g.d), gw = x.bandwidth(), n = g.rs.length, bw = g.bw, off = g.off;
       const ph = phaseOn(g.d);
       g.rs.forEach((r, i) => {
         const v = val(r), bx = off + i * (bw + 3), sn = Number(r.satz) || i + 1, col = SETC[(sn - 1) % SETC.length];
@@ -310,12 +304,6 @@
         svg.append("text").attr("x", bx + bw / 2).attr("y", y(v) - (sub ? 14 : 4)).attr("text-anchor", "middle").attr("class", "c-val").text(top);
         if (sub) svg.append("text").attr("x", bx + bw / 2).attr("y", y(v) - 3).attr("text-anchor", "middle").attr("class", "c-axis").text(sub);
       });
-      if (g.est != null) {
-        const cx = right + 12, cy = y(g.est);
-        onTip(svg.append("path").attr("d", `M${cx},${cy - 5}L${cx + 5},${cy}L${cx},${cy + 5}L${cx - 5},${cy}Z`).attr("class", "c-est"), T,
-          (ev) => T.show(ev, fmtD(g.date), [{ text: "Geschätztes Max: " + (norm.bw ? "+" : "") + g.est + " kg" + (norm.bw ? " Zusatzgewicht" : "") }]));
-        svg.append("text").attr("x", cx).attr("y", cy - 8).attr("text-anchor", "middle").attr("class", "c-val c-est-val").text((norm.bw ? "+" : "") + g.est);
-      }
       // Datum und Zyklusphase als kleine Pille darunter
       if (ph) svg.append("rect").attr("x", gx + gw / 2 - 26).attr("y", H - 19).attr("width", 52).attr("height", 16).attr("rx", 8).style("fill", BANDC[ph]).style("opacity", 0.6);
       svg.append("text").attr("x", gx + gw / 2).attr("y", H - 7).attr("text-anchor", "middle").attr("class", "c-axis").text(fmtD(g.date));
@@ -324,16 +312,14 @@
         svg.append("line").attr("x1", gx + 4).attr("x2", gx + gw - 4).attr("y1", 6).attr("y2", 6).style("stroke", SICK).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-dasharray", "0.1 10");
       }
     });
+    av.forEach((g) => onTip(svg.append("circle").attr("cx", g.ax).attr("cy", y(g.avg)).attr("r", 4).attr("class", "c-avg-dot"), T,
+      (ev) => T.show(ev, fmtD(g.date), [{ text: "Ø " + fnum(Math.round(g.avg * 10) / 10) + " kg über " + g.rs.length + " Sätze" }])));
     const li = [];
     d3.range(1, nMax + 1).forEach((sn) => li.push([SETC[(sn - 1) % SETC.length], "Satz " + sn]));
     if (anySick) li.push([SICK, "Krank"]);
     PHASES.filter((p) => usedPh.has(p)).forEach((p) => li.push([BANDC[p], p, 0.6]));
-    if (norm) { const pl = norm.bw ? "+" : ""; li.push(["var(--text)", "Geschätztes Max"]); li.push([norm.color, norm.who + ": " + pl + norm.lo + "–" + pl + norm.hi + " kg", 0.5]); }
+    if (av.length) li.push(["var(--text)", "Ø Gewicht"]);
     legend(el, li);
-    const note = (s) => el.appendChild(E("p", "c-hint", s));
-    if (cut) note("Die letzten 8 Termine. Wischen zeigt mehr.");
-    if (!norm && NOCMP.has(u)) note("Für Frauen allgemein gibt es keine verlässlichen Vergleichswerte, nur für Kraftsportlerinnen.");
-    if (norm) note(norm.hint);
   }
 
   function kUebungen(parent) {
@@ -352,7 +338,7 @@
     ulist.forEach((u) => {
       const rs = rows.filter((r) => r.uebung === u), sec = rs.some((r) => Number(r.dauer_s) > 0 && !Number(r.wdh)), kg = !sec && rs.some((r) => Number(r.gewicht_kg) > 0);
       if (fold && selten.includes(u)) { const h = E("div", "k-selten-item"); h.appendChild(E("h4", "c-title", u)); const b = E("div", "c-body"); h.appendChild(b); fold.appendChild(h); todo.push([b, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]); return; }
-      const body = card(parent, u, sec ? "Säulenhöhe = Haltezeit in Sekunden" : kg ? "Säulenhöhe = Gewicht, darüber Wdh. und kg" : "Säulenhöhe = Wiederholungen");
+      const body = card(parent, u);
       todo.push([body, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]);
     });
     if (fold) {
@@ -370,7 +356,7 @@
     const byDay = [...m].filter(([, v]) => v > 0);
     if (!byDay.length) return empty(el, "Erscheint mit dem ersten Training mit Gewicht.");
     const t = niceTicks(0, d3.max(byDay, (r) => r[1]) * 1.1);
-    chart(el, { kind: "bar", phases: true, barDays: 1.6, left: { domain: t.domain, ticks: t.ticks, fmt: d3.format("~s") },
+    chart(el, { kind: "line", phases: true, left: { domain: t.domain, ticks: t.ticks, fmt: d3.format("~s") },
       series: [{ name: "Volumen", color: SPORTC.Kraft, pts: byDay.map(([d, v]) => ({ d: pd(d), v, label: fnum(Math.round(v)) + " kg" })) }] });
   }
 
@@ -403,6 +389,14 @@
     chart(el, { kind: "bar", phases: true, weekLabels: true, barDays: 4.5, left: { domain: t.domain, ticks: t.ticks, fmt: d3.format("d") },
       series: [{ name: "Minuten", color: SPORTC.Rad, pts: w.map(([wk, o]) => ({ d: new Date(+pd(wk) + 3 * DAY), v: Math.round(o.min), label: Math.round(o.min) + " min" + (o.km ? ", " + fnum(Math.round(o.km * 10) / 10) + " km" : "") })) }] });
   }
+  function rKm(el) {
+    const m = new Map(); (C.rad || []).forEach((r) => { const k = weekStart(r.datum); m.set(k, (m.get(k) || 0) + (Number(r.distanz_km) || 0)); });
+    const w = [...m].filter(([, v]) => v > 0).sort();
+    if (!w.length) return empty(el, "Erscheint mit der ersten Fahrt mit Strecke.");
+    const t = niceTicks(0, Math.max(5, d3.max(w, (r) => r[1])) * 1.1);
+    chart(el, { kind: "bar", phases: true, weekLabels: true, barDays: 4.5, left: { domain: t.domain, ticks: t.ticks, fmt: d3.format("d") },
+      series: [{ name: "Kilometer", color: SPORTC.Rad, pts: w.map(([wk, v]) => ({ d: new Date(+pd(wk) + 3 * DAY), v: Math.round(v * 10) / 10, label: fnum(Math.round(v * 10) / 10) + " km" })) }] });
+  }
   function rPuls(el) {
     const rows = (C.rad || []).filter((x) => Number(x.avg_hf));
     if (!rows.length) return empty(el, "Erscheint mit der ersten Fahrt mit Pulsdaten.");
@@ -422,7 +416,7 @@
   function formKarte(parent) {
     const z = zyklusHeute(); if (!z) return;
     const P = z.phase, avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
-    const body = card(parent, "Deine Form in dieser Phase", "Aus deinen eigenen Einträgen, verglichen mit den anderen Phasen.");
+    const body = card(parent, "Deine Form in dieser Phase");
     const head = E("div", "zf-head");
     head.append(E("span", "zf-dot"), E("b", "", PHASE_INFO[P].titel), E("span", "zf-tag", "Tag " + z.day));
     head.firstChild.style.background = BANDC[P];
@@ -453,7 +447,6 @@
     body.appendChild(grid);
     const tipp = E("p", "zf-tipp"); tipp.append(E("b", "", "Heute passt: "), document.createTextNode(PHASE_INFO[P].stark[0] + ". " + PHASE_INFO[P].tipp));
     body.appendChild(tipp);
-    if ((C.bouldern || []).length + (C.kraft || []).length < 15) body.appendChild(E("p", "c-hint", "Wird mit jedem Zyklus genauer, richtig aussagekräftig nach etwa zwei bis drei Zyklen."));
   }
 
   // ---------- Zyklus: Hormon-Kurve (vereinfacht) ----------
@@ -495,7 +488,7 @@
     const mini = (l, t) => { const m = E("div", "zf-tile"); m.append(E("span", "zf-l", l), E("span", "zf-t", t)); row.appendChild(m); };
     mini("Jetzt gut für", PHASE_INFO[z.phase].stark[0]); mini("Achte auf", PHASE_INFO[z.phase].achte[0]);
     body.appendChild(row);
-    body.appendChild(E("p", "c-hint", z.overdue ? "Typischer 28-Tage-Zyklus, vereinfacht und nicht gemessen. Bleibt die Periode länger als 3 Monate aus, lohnt sich ein Termin bei der Frauenärztin." : "Typischer Verlauf, vereinfacht und nicht gemessen. Dein Zyklus kann davon abweichen."));
+    if (z.overdue) body.appendChild(E("p", "c-hint", "Bleibt die Periode länger als 3 Monate aus, lohnt sich ein Termin bei der Frauenärztin."));
   }
 
   function zyklusKarten(parent) {
@@ -520,7 +513,7 @@
       parent.appendChild(c);
     });
     // Zahlen je Phase
-    const body = card(parent, "Deine Zahlen je Phase", "Wird mit jedem Eintrag genauer. Aussagekräftig nach etwa zwei Zyklen.");
+    const body = card(parent, "Deine Zahlen je Phase");
     const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
     const rows = PHASES.map((P) => {
       const b = (C.bouldern || []).filter((r) => phaseOn(r.datum) === P);
@@ -624,9 +617,9 @@
     );
     const ok = Math.max(0, base.kcal - kc), op = Math.max(0, base.p - pr);
     const ohne = eat.length && eat.some((r) => r.kcal != null && r.kh_g == null) ? " Bei manchen Einträgen fehlen Kohlenhydrate und Fett, die zählen dort noch nicht mit." : "";
-    if (isToday) body.appendChild(E("p", "c-hint", eat.length ? (ok || op ? "Noch offen: " + fnum(ok) + " kcal und " + op + " g Eiweiß. Werte sind geschätzt." : "Ziel für heute erreicht.") + ohne : "Noch nichts eingetragen."));
+    if (isToday && (ohne || (eat.length && !ok && !op))) body.appendChild(E("p", "c-hint", (eat.length && !ok && !op ? "Ziel für heute erreicht ✓" : "") + ohne));
     else {
-      body.appendChild(E("p", "c-hint", (eat.length ? eat.length + (eat.length === 1 ? " Eintrag" : " Einträge") + " an diesem Tag. Antippen in der Liste unten zum Ändern." : "An diesem Tag ist nichts eingetragen.") + ohne));
+      if (!eat.length || ohne) body.appendChild(E("p", "c-hint", (eat.length ? "" : "An diesem Tag ist nichts eingetragen.") + ohne));
       const add = E("button", "btn small-btn", "+ Essen für " + (tagName(ti) === "Gestern" ? "gestern" : tagName(ti)) + " nachtragen"); add.type = "button";
       add.addEventListener("click", () => window.dispatchEvent(new CustomEvent("tb-add", { detail: { table: "ernaehrung", datum: ti } })));
       body.appendChild(add);
@@ -634,7 +627,7 @@
     const ret = isToday ? { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat } : null;
     const wg = letzteWaage();
     const kTxt = wg ? kfmt(wg.gewicht_kg, 1) + " kg" + (wg.koerperfett_pct != null ? ", " + kfmt(wg.koerperfett_pct, 1) + " % Körperfett" : "") + " (Waage vom " + dm(+pd(wg.datum)) + ")" : "74 kg, etwa 18 % Körperfett (Waage)";
-    if (isToday) body.appendChild(E("p", "c-hint", "Für dich berechnet: 26 Jahre, 175 cm, " + kTxt + ", viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g."));
+    if (isToday) { const why = E("details", "z-why"); why.append(E("summary", "", "ⓘ Wie ist dein Ziel berechnet?"), E("p", "", "26 Jahre, 175 cm, " + kTxt + ", viel Training. Leichtes Defizit, damit Kraft und Zyklus nicht leiden. Gesättigte Fette höchstens 10 % der Energie, Ballaststoffe mindestens 30 g.")); body.appendChild(why); }
     return ret;
   }
 
@@ -647,7 +640,7 @@
     { k: "f", lbl: "Fett", unit: "g", col: "fett_g", ziel: (b) => b.f },
   ];
   function essenVerlauf(parent) {
-    const body = card(parent, "Letzte 14 Tage", "Säule = gegessen, Strich = dein Ziel an dem Tag. Antippen zeigt den Tag oben.");
+    const body = card(parent, "Letzte 14 Tage");
     const chips = E("div", "chips f-chips");
     METRIKEN.forEach((m) => { const c = E("button", "chip" + (m.k === foodMetric ? " active" : ""), m.lbl); c.type = "button"; c.addEventListener("click", () => { foodMetric = m.k; rerender(); }); chips.appendChild(c); });
     body.appendChild(chips);
@@ -706,7 +699,7 @@
   ];
   function vorschlaege(parent, g) {
     const needP = g.p > 5, needB = g.b > 3, kc = g.kcal;
-    const body = card(parent, "Passt noch heute", "Aus dem, was du sonst isst, passend zu dem, was heute noch fehlt");
+    const body = card(parent, "Passt noch heute");
     if (!needP && !needB) { body.appendChild(E("p", "c-text", kc > 150 ? `Eiweiß und Ballaststoffe sind gedeckt. Die restlichen ${fnum(Math.round(kc))} kcal kannst du frei nutzen.` : "Für heute bist du gut versorgt.")); return; }
     // Deine Lebensmittel: je Name der letzte Eintrag mit Werten, wie oft gegessen
     const map = new Map(), heute = new Set(g.heute.map((r) => String(r.lebensmittel || "").toLowerCase()));
@@ -740,7 +733,6 @@
     eigene.forEach((f) => row(f, f.anzahl > 1 ? `${f.anzahl}× gegessen` : "schon gegessen"));
     extra.forEach((f) => row(f, "Idee"));
     body.appendChild(list);
-    body.appendChild(E("p", "c-hint", "Mengen wie bei deinem letzten Eintrag. „Idee“ sind Klassiker mit viel Eiweiß oder Ballaststoffen, Werte ungefähr."));
   }
 
   // ---------- Körper: Werte der Waage ----------
@@ -836,11 +828,8 @@
     });
     body.appendChild(big);
 
-    // 2) Eine Grafik mit Umschalter
+    // 2) Eine Grafik: die Kacheln oben sind der Umschalter
     const m = KW.find((x) => x.k === kwSel) || KW[0];
-    const seg = E("div", "k-seg");
-    HAUPT.forEach((k) => { const x = KW.find((y) => y.k === k); const s = E("button", x.k === kwSel ? "on" : "", x.l === "Muskelmasse" ? "Muskeln" : x.l); s.type = "button"; s.addEventListener("click", () => { kwSel = x.k; rerender(); }); seg.appendChild(s); });
-    body.appendChild(seg);
     if (!HAUPT.includes(m.k)) body.appendChild(E("p", "k-seltitle", m.l));
     const pts = series(m.k).map((r) => ({ d: pd(r.datum), v: Number(r[m.k]), label: kfmt(r[m.k], m.d) + (m.u ? " " + m.u : "") + (phaseOn(r.datum) ? " · " + phaseOn(r.datum) : "") }));
     const plot = E("div"); body.appendChild(plot);
@@ -860,11 +849,17 @@
       const d = delta(x), row = E("button", "k-row" + (x.k === kwSel ? " on" : "")); row.type = "button";
       row.innerHTML = `<span class="k-rn">${x.l}</span>${spark(series(x.k).map((r) => Number(r[x.k])), "var(--muted)")}<span class="k-rv">${kfmt(lastOf(x.k)[x.k], x.d)}${x.u && x.u !== "Jahre" ? " " + x.u : ""}</span><span class="k-d${d.cls}">${d.txt}</span>`;
       row.addEventListener("click", () => { kwSel = x.k; rerender(); box.scrollIntoView({ behavior: "smooth", block: "start" }); });
-      all.appendChild(row);
+      const line = E("div", "k-line"), ib = E("button", "k-i", "i"); ib.type = "button"; ib.setAttribute("aria-label", "Was ist " + x.l + "?");
+      const ex = E("div", "k-ex"); ex.hidden = !kwOpen.has(x.k); ex.append(E("p", "", x.t), E("p", "k-r", x.r));
+      ib.classList.toggle("on", !ex.hidden);
+      ib.addEventListener("click", () => { ex.hidden = !ex.hidden; ib.classList.toggle("on", !ex.hidden); if (ex.hidden) kwOpen.delete(x.k); else kwOpen.add(x.k); });
+      line.append(row, ib, ex);
+      all.appendChild(line);
     });
     box.appendChild(all);
   }
   let kwAll = false;
+  const kwOpen = new Set();
 
   // Letzte Messung mit Gewicht (für Kalorienziel), höchstens 60 Tage alt
   function letzteWaage() {
@@ -882,15 +877,15 @@
     box.replaceChildren();
     const P = window.TBPlan;
     if (view === "heute" && P) P.woche(box, cache);
-    if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche", "Eine Spalte pro Tag, ein Block pro Sportart. Tippen zeigt Details."));
+    if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche"));
     if (view === "training") {
       if (sport === "bouldern") { bGrad(card(box, "Schwerster Boulder pro Session")); bWoche(card(box, "Sessions pro Woche")); }
-      if ((sport === "kraft" || sport === "laufen") && P && P.ziele) P.ziele(box, cache);
+      if ((sport === "kraft" || sport === "laufen") && P && P.ziele) P.ziele(box, cache, sport);
       if (sport === "kraft" && P) P.kraft(box, cache);
       if (sport === "laufen" && P) P.laufen(box, cache);
-      if (sport === "kraft") { kUebungen(box); kVol(card(box, "Volumen pro Training", "Summe aus Wiederholungen mal Gewicht über alle Sätze, in kg.")); }
-      if (sport === "laufen") { lPace(card(box, "Pace und Puls")); lEff(card(box, "Meter pro Herzschlag", "Steigt der Wert, läufst du schneller bei gleichem Puls.")); }
-      if (sport === "rad") { rWoche(card(box, "Radminuten pro Woche")); rPuls(card(box, "Puls pro Fahrt")); }
+      if (sport === "kraft") { kUebungen(box); kVol(card(box, "Volumen pro Training")); }
+      if (sport === "laufen") { lPace(card(box, "Pace und Puls")); lEff(card(box, "Meter pro Herzschlag ↑")); }
+      if (sport === "rad") { rKm(card(box, "Kilometer pro Woche")); rWoche(card(box, "Radminuten pro Woche")); rPuls(card(box, "Puls pro Fahrt")); }
     }
     if (view === "zyklus") zyklusKarten(box);
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
@@ -961,14 +956,15 @@
         <div><span class="zu-k">Phase</span><h2 data-sum="zyklus">${z.phase}</h2></div>
         ${ovTxt ? `<div><span class="zu-k">Eisprung</span><b>${ovTxt}</b></div>` : ""}
         ${per ? `<div><span class="zu-k">Periode</span>${per}</div>` : ""}
+      <button type="button" class="zu-bulb${uhrTipps ? " on" : ""}" aria-label="Tipps für heute" aria-expanded="${uhrTipps}">${BULB}</button>
       </div></div>
-      <details class="zu-more"${uhrTipps ? " open" : ""}><summary><span>Tipps für heute</span><span class="zu-chev" aria-hidden="true">⌄</span></summary>
-      <div class="zu-tips">${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div></details>`;
-    // Die Karte ist ein Link zur Zyklus-Seite: Aufklappen soll nicht dorthin springen
-    const sm = el.querySelector(".zu-more summary");
-    if (sm) sm.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); const d = sm.parentElement; d.open = !d.open; uhrTipps = d.open; });
+      <div class="zu-tips"${uhrTipps ? "" : " hidden"}>${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div>`;
+    // Die Karte ist ein Link zur Zyklus-Seite: die Glühbirne soll nicht dorthin springen
+    const bb = el.querySelector(".zu-bulb");
+    if (bb) bb.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); uhrTipps = !uhrTipps; bb.classList.toggle("on", uhrTipps); bb.setAttribute("aria-expanded", uhrTipps); el.querySelector(".zu-tips").hidden = !uhrTipps; });
   }
   let uhrTipps = false;
+  const BULB = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>`;
   // Nur der Punktekranz, für die Zyklus-Seite
   function uhrSvg(cache) { const d = document.createElement("div"); heuteUhr(d, cache); const s = d.querySelector("svg"); return s ? s.outerHTML : null; }
 
