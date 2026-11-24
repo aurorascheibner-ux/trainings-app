@@ -94,6 +94,7 @@
   </svg>
 
   <div class="glow" aria-hidden="true"></div>
+  <div class="bgfx" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
   <header class="topbar">
     <div>
@@ -160,10 +161,17 @@
         <p class="t-label"><svg class="ico"><use href="#i-ernaehrung"/></svg>Essen heute</p>
         <div class="tf-row">
           <div class="tf-main"><span class="tf-num" data-tf="num">–</span><span class="tf-unit" data-tf="unit">kcal übrig</span><span class="tf-sub" data-tf="sub"></span></div>
-          <svg class="tf-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="tf-ring-bg" cx="60" cy="60" r="52"/><circle class="tf-ring-fg" data-tf="ring" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/></svg>
+          <svg class="tf-ring tri" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="tf-ring-bg" cx="60" cy="60" r="53"/><circle class="tf-ring-fg" data-tf="ring" cx="60" cy="60" r="53" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+            <circle class="tf-ring-bg" cx="60" cy="60" r="40"/><circle class="tf-ring-p" data-tf="pring" cx="60" cy="60" r="40" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+            <circle class="tf-ring-bg" cx="60" cy="60" r="27"/><circle class="tf-ring-b" data-tf="bring" cx="60" cy="60" r="27" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+          </svg>
         </div>
-        <div class="tf-bar"><div class="tf-bar-top"><span>Eiweiß</span><span class="num" data-tf="p"></span></div><div class="tf-track"><i data-tf="pbar"></i></div></div>
-        <div class="tf-bar"><div class="tf-bar-top"><span>Ballaststoffe</span><span class="num" data-tf="b"></span></div><div class="tf-track"><i data-tf="bbar"></i></div></div>
+        <div class="tf-leg">
+          <span><i class="tf-li k"></i>Kalorien</span>
+          <span><i class="tf-li p"></i>Eiweiß <b data-tf="p"></b></span>
+          <span><i class="tf-li b"></i>Ballaststoffe <b data-tf="b"></b></span>
+        </div>
       </a>
       <div class="grid today-grid">
         <a class="glass tile" href="#training" data-tile="training" style="--accent: var(--c1)">
@@ -209,8 +217,8 @@
 
     <section class="view" data-view="befinden" hidden>
       <div class="charts" data-charts="befinden"></div>
-      <h3 class="section-h">Deine Messungen</h3>
-      <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div>
+      <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
+      <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
       <h3 class="section-h">Befinden</h3>
       <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
     </section>
