@@ -16,17 +16,25 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# Zwei Schritte wie in GitHubs Vorlage: erst Dateien hochladen, dann in einem eigenen
+# Job veröffentlichen. In einem Job fand GitHub das gerade hochgeladene Paket
+# manchmal noch nicht („No artifacts named github-pages“).
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
