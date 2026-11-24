@@ -255,6 +255,14 @@
     const x = d3.scaleBand(dates, [m.l, W - m.r]).paddingInner(0.2).paddingOuter(0.06);
     t.ticks.forEach((v) => { svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).attr("class", "c-grid"); ax.append("text").attr("x", AX - 5).attr("y", y(v)).attr("dy", "0.32em").attr("text-anchor", "end").attr("class", "c-axis").text(fnum(v)); });
     ax.append("text").attr("x", AX - 5).attr("y", 9).attr("text-anchor", "end").attr("class", "c-axis c-unit").text(mode === "kg" ? "kg" : mode === "sec" ? "Sek." : "Wdh.");
+    // Zyklusphase als farbige Fläche hinter jedem Termin, wie bei den anderen Grafiken
+    const usedPh = new Set();
+    groups.forEach((g) => {
+      const ph = phaseOn(g.d); if (!ph) return;
+      usedPh.add(ph);
+      const pad = (x.step() - x.bandwidth()) / 2;
+      svg.append("rect").attr("x", x(g.d) - pad).attr("width", x.step()).attr("y", y(t.ticks[t.ticks.length - 1])).attr("height", y(0) - y(t.ticks[t.ticks.length - 1])).style("fill", BANDC[ph]).style("opacity", 0.22);
+    });
     if (norm) svg.append("rect").attr("x", m.l).attr("width", W - m.r - m.l).attr("y", y(norm.hi)).attr("height", y(norm.lo) - y(norm.hi)).style("fill", norm.color).style("opacity", 0.18);
     const T = tipOf(el), base = y(0);
     let anySick = false;
@@ -279,7 +287,7 @@
         svg.append("text").attr("x", cx).attr("y", cy - 8).attr("text-anchor", "middle").attr("class", "c-val c-est-val").text((norm.bw ? "+" : "") + g.est);
       }
       // Datum und Zyklusphase als kleine Pille darunter
-      if (ph) svg.append("rect").attr("x", gx + gw / 2 - 26).attr("y", H - 19).attr("width", 52).attr("height", 16).attr("rx", 8).style("fill", BANDC[ph]).style("opacity", 0.35);
+      if (ph) svg.append("rect").attr("x", gx + gw / 2 - 26).attr("y", H - 19).attr("width", 52).attr("height", 16).attr("rx", 8).style("fill", BANDC[ph]).style("opacity", 0.6);
       svg.append("text").attr("x", gx + gw / 2).attr("y", H - 7).attr("text-anchor", "middle").attr("class", "c-axis").text(fmtD(g.date));
       if ((C.befinden || []).some((r) => r.status !== "gut" && r.datum_von && g.d >= r.datum_von && (!r.datum_bis || g.d <= r.datum_bis))) {
         anySick = true;
@@ -289,6 +297,7 @@
     const li = [];
     d3.range(1, nMax + 1).forEach((sn) => li.push([SETC[(sn - 1) % SETC.length], "Satz " + sn]));
     if (anySick) li.push([SICK, "Krank"]);
+    PHASES.filter((p) => usedPh.has(p)).forEach((p) => li.push([BANDC[p], p, 0.6]));
     if (norm) { const pl = norm.bw ? "+" : ""; li.push(["var(--text)", "Geschätztes Max"]); li.push([norm.color, norm.who + ": " + pl + norm.lo + "–" + pl + norm.hi + " kg", 0.5]); }
     legend(el, li);
     const note = (s) => el.appendChild(E("p", "c-hint", s));
