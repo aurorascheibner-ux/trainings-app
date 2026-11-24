@@ -431,10 +431,10 @@ function renderEssenHeute() {
   set("unit", over ? "kcal drüber" : "kcal übrig");
   set("sub", `${fmtNum(e.kcal)} von ${fmtNum(e.ziel.kcal)} kcal · ${e.why.split(",")[0].split(" · ")[0]}`);
   box.querySelector('[data-tf="ring"]').setAttribute("stroke-dasharray", `${Math.min(100, (e.kcal / e.ziel.kcal) * 100).toFixed(1)} 100`);
-  set("p", `${fmtNum(e.p)}<small> / ${e.ziel.p} g</small>`);
-  set("b", `${fmtNum(e.b)}<small> / ${e.ziel.b} g</small>`);
-  box.querySelector('[data-tf="pbar"]').style.width = Math.min(100, (e.p / e.ziel.p) * 100) + "%";
-  box.querySelector('[data-tf="bbar"]').style.width = Math.min(100, (e.b / e.ziel.b) * 100) + "%";
+  set("p", `${fmtNum(e.p)}<small>/${e.ziel.p} g</small>`);
+  set("b", `${fmtNum(e.b)}<small>/${e.ziel.b} g</small>`);
+  box.querySelector('[data-tf="pring"]').setAttribute("stroke-dasharray", `${Math.min(100, (e.p / e.ziel.p) * 100).toFixed(1)} 100`);
+  box.querySelector('[data-tf="bring"]').setAttribute("stroke-dasharray", `${Math.min(100, (e.b / e.ziel.b) * 100).toFixed(1)} 100`);
 }
 
 function renderToday() {

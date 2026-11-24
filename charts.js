@@ -209,12 +209,32 @@
     chart(el, { kind: "line", phases: true, left: { domain: [lo, hi], ticks, fmt: (i) => GRADES[i] }, series: [{ name: "Schwerster", color: SPORTC.Bouldern, pts: rows.map((r) => ({ d: pd(r.datum), v: GRADES.indexOf(String(r.max_grad).trim()), label: String(r.max_grad).trim() })) }] });
   }
   function bWoche(el) {
-    const m = new Map(); (C.bouldern || []).forEach((r) => { const k = weekStart(r.datum); m.set(k, (m.get(k) || 0) + 1); });
-    const w = [...m].sort();
+    const m = new Map();
+    (C.bouldern || []).forEach((r) => { const k = weekStart(r.datum); if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+    let w = [...m].sort((a, b) => a[0].localeCompare(b[0]));
     if (!w.length) return empty(el, "Erscheint mit der ersten Session.");
-    const top = Math.max(6, d3.max(w, (r) => r[1]));
-    chart(el, { kind: "bar", weekLabels: true, barDays: 4.5, left: { domain: [0, top], ticks: d3.range(0, top + 1, 2), fmt: d3.format("d") }, refs: [{ v: 4, label: "Ziel ab 4" }],
-      series: [{ name: "Sessions", color: SPORTC.Bouldern, pts: w.map(([wk, n]) => ({ d: new Date(+pd(wk) + 3 * DAY), v: n, label: String(n) })) }] });
+    const W = Math.max(280, Math.round(el.clientWidth) || 360), H = 220, mg = { t: 26, r: 8, b: 26, l: 22 };
+    const maxW = Math.max(4, Math.floor((W - mg.l - mg.r) / 34)); if (w.length > maxW) w = w.slice(-maxW);
+    const top = Math.max(6, d3.max(w, (x) => x[1].length));
+    const x = d3.scaleBand(w.map((x) => x[0]), [mg.l, W - mg.r]).padding(0.28), y = d3.scaleLinear([0, top], [H - mg.b, mg.t]);
+    const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    d3.range(0, top + 1, 2).forEach((v) => { svg.append("line").attr("x1", mg.l).attr("x2", W - mg.r).attr("y1", y(v)).attr("y2", y(v)).attr("class", "c-grid"); svg.append("text").attr("x", mg.l - 6).attr("y", y(v)).attr("dy", "0.32em").attr("text-anchor", "end").attr("class", "c-axis").text(v); });
+    svg.append("line").attr("x1", mg.l).attr("x2", W - mg.r).attr("y1", y(4)).attr("y2", y(4)).attr("class", "c-ref");
+    svg.append("text").attr("x", W - mg.r - 2).attr("y", y(4) - 4).attr("text-anchor", "end").attr("class", "c-axis").text("Ziel 4");
+    const T = tipOf(el), gi = (r) => GRADES.indexOf(String(r.max_grad || "").trim());
+    w.forEach(([wk, rs]) => {
+      rs = rs.slice().sort((a, b) => a.datum.localeCompare(b.datum));
+      const bx = x(wk), bw = x.bandwidth(), u = y(0) - y(1);
+      rs.forEach((r, i) => {
+        const ph = phaseOn(r.datum);
+        onTip(svg.append("rect").attr("x", bx).attr("width", bw).attr("y", y(i + 1) + 1.5).attr("height", Math.max(2, u - 3)).attr("rx", 3).style("fill", SPORTC.Bouldern), T,
+          (ev) => T.show(ev, fmtD(pd(r.datum)) + (ph ? " · " + ph : ""), [{ color: SPORTC.Bouldern, text: "Session" + (r.max_grad ? " bis " + r.max_grad : "") }]));
+      });
+      const best = rs.reduce((m, r) => (gi(r) > gi(m) ? r : m), rs[0]);
+      if (gi(best) >= 0) svg.append("text").attr("x", bx + bw / 2).attr("y", y(rs.length) - 6).attr("text-anchor", "middle").attr("class", "c-val").text(String(best.max_grad).trim());
+      svg.append("text").attr("x", bx + bw / 2).attr("y", H - 8).attr("text-anchor", "middle").attr("class", "c-axis").text(dm(+pd(wk)));
+    });
+    el.appendChild(E("p", "c-hint", "Ein Stück pro Session, oben der schwerste Boulder der Woche. Woche ab Montag."));
   }
 
   // ---------- Kraft ----------
@@ -315,11 +335,24 @@
     const rank = (u) => { const i = ORDER.indexOf(u); return i < 0 ? ORDER.length : i; };
     const ulist = [...firstSeen.keys()].sort((a, b) => rank(a) - rank(b)); // stabil: Rest bleibt nach erstem Auftauchen
     const todo = [];
+    const termine = (u) => new Set(rows.filter((r) => r.uebung === u).map((r) => r.datum)).size;
+    const selten = ulist.filter((u) => termine(u) < 3);
+    let fold = null;
+    if (selten.length) { fold = E("details", "glass c-card k-selten"); const sm = E("summary"); sm.append(E("span", "c-title", "Seltene Übungen"), E("span", "k-cnt", selten.length + " ⌄")); fold.appendChild(sm); fold.appendChild(E("p", "c-note", "Weniger als 3 Termine: " + selten.join(", "))); }
     ulist.forEach((u) => {
       const rs = rows.filter((r) => r.uebung === u), sec = rs.some((r) => Number(r.dauer_s) > 0 && !Number(r.wdh)), kg = !sec && rs.some((r) => Number(r.gewicht_kg) > 0);
+      if (fold && selten.includes(u)) { const h = E("div", "k-selten-item"); h.appendChild(E("h4", "c-title", u)); const b = E("div", "c-body"); h.appendChild(b); fold.appendChild(h); todo.push([b, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]); return; }
       const body = card(parent, u, sec ? "Säulenhöhe = Haltezeit in Sekunden" : kg ? "Säulenhöhe = Gewicht, darüber Wdh. und kg" : "Säulenhöhe = Wiederholungen");
       todo.push([body, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]);
     });
+    if (fold) {
+      parent.appendChild(fold);
+      // Grafiken erst beim Aufklappen zeichnen (vorher ist die Breite 0)
+      const late = todo.filter((a) => selten.includes(a[1])), now = todo.filter((a) => !selten.includes(a[1]));
+      now.forEach((a) => setChart(...a));
+      fold.addEventListener("toggle", () => { if (fold.open && !fold._drawn) { fold._drawn = true; late.forEach((a) => setChart(...a)); } }, { once: false });
+      return;
+    }
     todo.forEach((a) => setChart(...a));
   }
   function kVol(el) {
@@ -422,25 +455,29 @@
   };
   function hormonKarte(parent) {
     const z = zyklusHeute(); if (!z) return;
-    const [titel, text] = HORMON[z.phase];
+    let [titel, text] = HORMON[z.phase];
+    if (z.overdue) { titel = "Periode lässt auf sich warten"; text = "Ohne neue Periode weiß die App nicht, wann dein Eisprung war. Oft kam er einfach später. Die Kurve zeigt deshalb nur den typischen Verlauf."; }
+    else if (z.phase === "Lutealphase" && z.len - z.day <= 3) { titel = "Hormone fallen ab"; text = "Progesteron und Östrogen sinken, die Periode kommt bald. Energie und Laune können jetzt tiefer sein."; }
     const body = card(parent, titel, text);
-    const L = Math.max(21, z.len), ov = L - 14, day = Math.min(z.day, L);
+    const L = z.overdue ? 28 : Math.max(21, z.len), ov = L - 14, day = Math.min(z.day, L);
     const est = (d) => 0.22 + 0.68 * Math.exp(-(((d - ov + 1) / 2.6) ** 2)) + 0.3 * Math.exp(-(((d - ov - 7) / 3.5) ** 2));
     const prog = (d) => 0.05 + 0.85 * Math.exp(-(((d - ov - 7) / 3.6) ** 2));
     const W = 340, H = 130, b = 18, X = (d) => ((d - 1) / (L - 1)) * W, Y = (v) => H - b - v * (H - b - 14);
     const path = (f) => d3.range(0, 101).map((i) => { const d = 1 + (i / 100) * (L - 1); return (i ? "L" : "M") + X(d).toFixed(1) + "," + Y(f(d)).toFixed(1); }).join("");
     const cyc = C.phasen.filter((p) => p.phase === "Periode" && p.start <= iso(todayUTC())).pop();
     let bands = "";
-    if (cyc) C.phasen.filter((p) => p.zyklus_start === cyc.start).forEach((p) => {
+    const band = (a, e, ph) => { bands += `<rect x="${X(Math.max(1, a - 0.5)).toFixed(1)}" y="0" width="${Math.max(0, X(Math.min(L, e + 0.5)) - X(Math.max(1, a - 0.5))).toFixed(1)}" height="${H - b}" style="fill:${BANDC[ph]}" opacity=".16"/>`; };
+    if (z.overdue) { band(1, 5, "Periode"); band(6, ov - 2, "Follikelphase"); band(ov - 1, ov + 1, "Eisprung"); band(ov + 2, L, "Lutealphase"); }
+    else if (cyc) C.phasen.filter((p) => p.zyklus_start === cyc.start).forEach((p) => {
       const a = Math.round((pd(p.start) - pd(cyc.start)) / DAY) + 1, e = Math.round((pd(p.ende) - pd(cyc.start)) / DAY) + 1;
       bands += `<rect x="${X(Math.max(1, a - 0.5)).toFixed(1)}" y="0" width="${Math.max(0, X(Math.min(L, e + 0.5)) - X(Math.max(1, a - 0.5))).toFixed(1)}" height="${H - b}" style="fill:${BANDC[p.phase]}" opacity=".16"/>`;
     });
     const tx = X(day);
     const svg = `<svg class="zh-svg" viewBox="0 0 ${W} ${H}" width="100%">${bands}
       <path d="${path(est)}" fill="none" style="stroke:var(--c1)" stroke-width="2.6"/><path d="${path(prog)}" fill="none" style="stroke:var(--c4)" stroke-width="2.6"/>
-      <line x1="${tx}" x2="${tx}" y1="0" y2="${H - b}" style="stroke:var(--text)" stroke-dasharray="3 3"/>
+      ${z.overdue ? "" : `<line x1="${tx}" x2="${tx}" y1="0" y2="${H - b}" style="stroke:var(--text)" stroke-dasharray="3 3"/>
       <circle cx="${tx}" cy="${Y(z.phase === "Lutealphase" ? prog(day) : est(day)).toFixed(1)}" r="5" style="fill:${z.phase === "Lutealphase" ? "var(--c4)" : "var(--c1)"};stroke:var(--card)" stroke-width="2"/>
-      <text x="${tx + (tx > W - 50 ? -6 : 6)}" y="11" class="c-axis" text-anchor="${tx > W - 50 ? "end" : "start"}" style="font-weight:700">heute</text>
+      <text x="${tx + (tx > W - 50 ? -6 : 6)}" y="11" class="c-axis" text-anchor="${tx > W - 50 ? "end" : "start"}" style="font-weight:700">heute</text>`}
       <text x="2" y="${H - 3}" class="c-axis">Tag 1</text><text x="${X(ov)}" y="${H - 3}" class="c-axis" text-anchor="middle">Eisprung</text><text x="${W - 2}" y="${H - 3}" class="c-axis" text-anchor="end">Tag ${L}</text></svg>`;
     const wrap = E("div"); wrap.innerHTML = svg; body.appendChild(wrap);
     legend(body, [["var(--c1)", "Östrogen"], ["var(--c4)", "Progesteron"]]);
@@ -448,7 +485,7 @@
     const mini = (l, t) => { const m = E("div", "zf-tile"); m.append(E("span", "zf-l", l), E("span", "zf-t", t)); row.appendChild(m); };
     mini("Jetzt gut für", PHASE_INFO[z.phase].stark[0]); mini("Achte auf", PHASE_INFO[z.phase].achte[0]);
     body.appendChild(row);
-    body.appendChild(E("p", "c-hint", z.overdue ? "Deine Periode ist überfällig, die Kurve ist deshalb nur grob geschätzt. Typischer Verlauf, nicht gemessen." : "Typischer Verlauf, vereinfacht und nicht gemessen. Dein Zyklus kann davon abweichen."));
+    body.appendChild(E("p", "c-hint", z.overdue ? "Typischer 28-Tage-Zyklus, vereinfacht und nicht gemessen. Bleibt die Periode länger als 3 Monate aus, lohnt sich ein Termin bei der Frauenärztin." : "Typischer Verlauf, vereinfacht und nicht gemessen. Dein Zyklus kann davon abweichen."));
   }
 
   function zyklusKarten(parent) {
@@ -481,12 +518,14 @@
       const kd = new Map(); (C.kraft || []).filter((r) => phaseOn(r.datum) === P && Number(r.gewicht_kg) > 0).forEach((r) => kd.set(r.datum, Math.max(kd.get(r.datum) || 0, Number(r.gewicht_kg))));
       const l = (C.laufen || []).filter((r) => phaseOn(r.datum) === P && Number(r.pace_s_km) && Number(r.avg_hf)).map((r) => (60000 / Number(r.pace_s_km)) / Number(r.avg_hf));
       const ag = avg(gi), ak = avg([...kd.values()]), al = avg(l);
-      return [P, b.length, ag === null ? "–" : GRADES[Math.round(ag)], ak === null ? "–" : Math.round(ak) + " kg", al === null ? "–" : al.toFixed(2).replace(".", ",")];
+      return [P, b.length, ag === null ? "–" : GRADES[Math.round(ag)], ak === null ? "–" : Math.round(ak) + " kg", al === null ? "–" : al.toFixed(2).replace(".", ","), [b.length / Math.max(1, C.phasen.filter((p) => p.phase === P && !p.prognose).length), ag, ak, al]];
     });
+    // bester Wert je Spalte (Sessions: pro Phase-Durchgang, damit kurze Phasen fair sind)
+    const best = [0, 1, 2, 3].map((j) => { const vs = rows.map((r) => r[5][j]).filter((v) => v != null && v > 0); return vs.length > 1 ? Math.max(...vs) : null; });
     const tbl = E("table", "c-table");
     const th = E("tr"); ["Phase", "Boulder-Sessions", "Ø schwerster Boulder", "Ø schwerster Kraftsatz", "Lauf m/Schlag"].forEach((h) => th.appendChild(E("th", "", h)));
     tbl.appendChild(th);
-    rows.forEach((r) => { const tr = E("tr"); r.forEach((v, i) => { const td = E("td", "", String(v)); if (i === 0) { const dot = E("i"); dot.style.background = BANDC[v]; td.prepend(dot); } tr.appendChild(td); }); tbl.appendChild(tr); });
+    rows.forEach((r) => { const tr = E("tr"); r.slice(0, 5).forEach((v, i) => { const td = E("td", "", String(v)); if (i === 0) { const dot = E("i"); dot.style.background = BANDC[v]; td.prepend(dot); } else if (best[i - 1] != null && r[5][i - 1] === best[i - 1]) td.className = "c-best"; tr.appendChild(td); }); tbl.appendChild(tr); });
     const wrap = E("div", "c-scroll"); wrap.appendChild(tbl); body.appendChild(wrap);
   }
 
@@ -902,8 +941,15 @@
         ${ovTxt ? `<div><span class="zu-k">Eisprung</span><b>${ovTxt}</b></div>` : ""}
         ${per ? `<div><span class="zu-k">Periode</span>${per}</div>` : ""}
       </div></div>
-      <div class="zu-tips">${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div>`;
+      <details class="zu-more"${uhrTipps ? " open" : ""}><summary><span>Tipps für heute</span><span class="zu-chev" aria-hidden="true">⌄</span></summary>
+      <div class="zu-tips">${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div></details>`;
+    // Die Karte ist ein Link zur Zyklus-Seite: Aufklappen soll nicht dorthin springen
+    const sm = el.querySelector(".zu-more summary");
+    if (sm) sm.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); const d = sm.parentElement; d.open = !d.open; uhrTipps = d.open; });
   }
+  let uhrTipps = false;
+  // Nur der Punktekranz, für die Zyklus-Seite
+  function uhrSvg(cache) { const d = document.createElement("div"); heuteUhr(d, cache); const s = d.querySelector("svg"); return s ? s.outerHTML : null; }
 
   // Für die Zyklus-Seite direkt unter dem Ring
   function zyklusTop(el, cache) {
@@ -913,5 +959,5 @@
     try { formKarte(el); hormonKarte(el); } catch (e) { console.error("Zyklus-Karten", e); }
   }
 
-  window.TBCharts = { render, phasen, essenHeute, zyklusTop, heuteUhr, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
+  window.TBCharts = { render, phasen, essenHeute, zyklusTop, heuteUhr, uhrSvg, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
 })();

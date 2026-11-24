@@ -72,14 +72,7 @@
     // Neue Periode trägt man über das + unten ein; nur das Ende einer laufenden Periode gibt es hier direkt.
     const btn = laufend ? `<button type="button" class="btn" data-edit-periode="${esc(laufend.id)}">Periode ist vorbei</button>` : "";
     return el(`<div class="glass z-ring-card">
-      <svg viewBox="0 0 260 260" class="z-ring" role="img" aria-label="Zyklustag ${z.day} von etwa ${z.len}, ${z.phase}">
-        <circle cx="${C}" cy="${C}" r="${R}" style="stroke:var(--track)" stroke-width="${SW + 6}" fill="none"/>
-        ${segs}
-        <g transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${(ang(z.day - 0.5) * 180 / Math.PI + 90).toFixed(1)})"><path d="M14 0 L-9 -12 L-4 0 L-9 12 Z" class="z-mark"/></g>
-        <text x="${C}" y="${C - 30}" text-anchor="middle" class="z-r-lbl">Zyklustag</text>
-        <text x="${C}" y="${C + 18}" text-anchor="middle" class="z-r-day">${z.day}</text>
-        <text x="${C}" y="${C + 44}" text-anchor="middle" class="z-r-phase" style="fill:${BANDC[z.phase]}">${KURZ[z.phase]}</text>
-      </svg>
+      ${window.TBCharts.uhrSvg ? window.TBCharts.uhrSvg(ctx.cache) : ""}
       <p class="z-r-sub">${esc(sub)}</p>
       <div class="z-legend">${Object.keys(BANDC).map((k) => `<span><i style="background:${BANDC[k]}"></i>${k}</span>`).join("")}</div>
       ${btn ? `<div class="z-actions">${btn}</div>` : ""}

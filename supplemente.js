@@ -68,6 +68,7 @@
   }
   const genommen = (s, tag) => log.some((r) => r.datum === tag && r.name === s.name);
 
+  let auf = (() => { try { return localStorage.getItem("supp-auf") === "1"; } catch { return false; } })();
   function html() {
     const tag = iso(Date.now());
     if (!ok) return `<div class="glass c-card supp"><h3 class="c-title">Supplemente</h3>
@@ -91,12 +92,14 @@
         <button type="button" class="supp-row${g ? " on" : ""}${f.due ? "" : " soft"}" data-supp-tick="${esc(s.id)}" aria-pressed="${g}">
           <span class="supp-box">${g ? "✓" : ""}</span>
           <span class="supp-main"><b>${esc(s.name)}</b> <span class="supp-menge">${esc(s.menge)}</span>
-          <span class="supp-info">${esc(f.why || s.info || "")}</span></span></button>${infoBtn(s)}</div>${infoText(s)}</div>`).join("");
+          ${f.why ? `<span class="supp-info">${esc(f.why)}</span>` : ""}</span></button>${infoBtn(s)}</div>${infoText(s)}</div>`).join("");
     }).join("");
     const paused = plan.filter((s) => !s.aktiv);
+    const alle = due.length && done >= due.length;
+    const status = !due.length ? `<span class="supp-st ok" title="Heute nichts fällig">✓</span>` : alle ? `<span class="supp-st ok" title="Alles genommen">✓</span>` : `<span class="supp-st">${done}/${due.length}</span>`;
+    if (!auf && !edit) return `<div class="glass c-card supp zu"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="false"><h3 class="c-title">Supplemente</h3>${status}<span class="supp-chev">⌄</span></button></div>`;
     return `<div class="glass c-card supp">
-      <div class="supp-head"><h3 class="c-title">Supplemente</h3><button type="button" class="btn ghost small-btn" data-supp-edit>${edit ? "Fertig" : "Plan bearbeiten"}</button></div>
-      ${edit ? "" : `<p class="c-note">${due.length ? `Heute ${done} von ${due.length} genommen. Antippen zum Abhaken.` : "Heute ist nichts fällig."}</p>`}
+      <div class="supp-head"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="true"><h3 class="c-title">Supplemente</h3>${status}<span class="supp-chev up">⌄</span></button><button type="button" class="btn ghost small-btn" data-supp-edit>${edit ? "Fertig" : "Bearbeiten"}</button></div>
       ${gruppen}
       ${edit ? addForm() : `<div class="supp-week">${woche.map((w) => `<span title="${w.d}"><i style="--q:${w.q == null ? 0 : w.q}" class="${w.q == null ? "none" : ""}"></i>${w.wd}</span>`).join("")}</div>
       <p class="c-hint">Die Woche zeigt, wie viel von den täglichen Supplementen du genommen hast.${paused.length ? ` Pausiert: ${esc(paused.map((s) => s.name).join(", "))}.` : ""} Kein Ersatz für ärztlichen Rat.</p>`}
@@ -149,6 +152,7 @@
       busy = false; return;
     }
     if (e.target.closest("[data-supp-edit]")) { edit = !edit; draw(); return; }
+    if (e.target.closest("[data-supp-auf]")) { auf = !auf; try { localStorage.setItem("supp-auf", auf ? "1" : "0"); } catch {} draw(); return; }
     const row = e.target.closest("[data-supp-id]");
     if (row && e.target.closest("[data-supp-toggle]")) {
       const s = plan.find((x) => x.id === row.dataset.suppId); s.aktiv = !s.aktiv; draw();

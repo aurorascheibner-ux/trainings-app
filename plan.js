@@ -19,7 +19,7 @@
       { u: "Beine anziehen im Liegestütz", lo: 8, hi: 15, bw: true },
     ],
   };
-  const KRAFT_PRO_WOCHE = 3, LAUF_PRO_WOCHE = 2, PULS_MAX = 140, LAUF_ZIEL_MIN = 45;
+  const KRAFT_PRO_WOCHE = 3, LAUF_PRO_WOCHE = 2, BOULDER_PRO_WOCHE = 4, PULS_MAX = 140, LAUF_ZIEL_MIN = 45;
 
   const DAY = 864e5;
   const iso = (t) => new Date(t).toISOString().slice(0, 10);
@@ -95,7 +95,7 @@
     const items = PLAN[next].map((ex) => {
       const g = target(ex, rows, z.hold);
       const goal = `${ex.side ? "3 × " + g.aim + " pro Seite" : "3 × " + g.aim}${g.w != null ? " · " + kg(ex, g.w) : ""}`;
-      const tag = g.up ? `<span class="p-up">${g.w != null ? "↑ schwerer" : "↑ schaffst du"}</span>` : "";
+      const tag = g.up ? `<span class="p-up">${g.w != null ? "↑ 5 kg mehr" : "↑ schaffst du"}</span>` : "";
       const sub = [g.info, g.upText, g.holdText, ex.hint].filter(Boolean).join(" ");
       return { ex, g, html: `<div class="p-row"><div class="p-top"><b>${esc(ex.u)}</b>${tag}</div><div class="p-goal">${esc(goal)}</div><div class="p-sub">${esc(sub)}</div></div>` };
     });
@@ -105,7 +105,7 @@
       ${z.text ? `<p class="c-note">${esc(z.text)}</p>` : ""}
       ${items.map((i) => i.html).join("")}
       <button type="button" class="btn small-btn p-start">Training eintragen</button>
-      <p class="c-hint">Bereich je Übung: erst alle Sätze bis zur oberen Zahl, dann schwerer und wieder unten anfangen.</p>`);
+      <details class="z-why"><summary>ⓘ Was heißt „↑ 5 kg mehr“?</summary><p>Du hast beim letzten Mal in allen Sätzen die obere Zahl geschafft. Deshalb kommt jetzt das nächste Gewicht dran und du fängst wieder unten im Wiederholungsbereich an.</p></details>`);
     c.querySelector(".p-start").addEventListener("click", () => {
       window.dispatchEvent(new CustomEvent("tb-plan", { detail: items.map((i) => ({ u: i.ex.u, w: i.g.w })) }));
     });
@@ -131,9 +131,11 @@
     const wk = weekStart(todayISO());
     const k = new Set((cache.kraft || []).filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const l = (cache.laufen || []).filter((r) => r.datum >= wk).length;
+    const bo = new Set((cache.bouldern || []).filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const { next } = nextDay(cache.kraft || []);
     const c = card(parent, "Dein Plan diese Woche");
     c.insertAdjacentHTML("beforeend", `
+      <div class="p-week">Bouldern ${dots(Math.min(bo, BOULDER_PRO_WOCHE), BOULDER_PRO_WOCHE)} <span>${bo} von ${BOULDER_PRO_WOCHE}${bo > BOULDER_PRO_WOCHE ? " +" + (bo - BOULDER_PRO_WOCHE) : ""}</span></div>
       <div class="p-week">Kraft ${dots(Math.min(k, KRAFT_PRO_WOCHE), KRAFT_PRO_WOCHE)} <span>${k} von ${KRAFT_PRO_WOCHE}</span></div>
       <div class="p-week">Laufen ${dots(Math.min(l, LAUF_PRO_WOCHE), LAUF_PRO_WOCHE)} <span>${l} von ${LAUF_PRO_WOCHE}</span></div>
       <p class="c-hint">Als Nächstes: ${esc(PLAN[next].map((e) => e.u.replace(" im Liegestütz", "")).join(", "))}. Antippen für deinen Plan ›</p>`);
@@ -174,42 +176,45 @@
   }
   const ZIEL_WOCHEN = 13; // etwa 3 Monate
 
+  // Zwei feste Termine für alle Übungen: Mitte nächsten Monats (mind. 3 Wochen) und Ende des Monats in etwa 3 Monaten
+  function meilensteine() {
+    const now = new Date(), t = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    let m1 = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 15));
+    while ((m1 - t) / DAY < 21) m1 = new Date(Date.UTC(m1.getUTCFullYear(), m1.getUTCMonth() + 1, 15));
+    const m2 = new Date(Date.UTC(m1.getUTCFullYear(), m1.getUTCMonth() + 3, 0));
+    const lbl = (d, teil) => `${teil} ${MONATE[d.getUTCMonth()]}${d.getUTCFullYear() !== now.getFullYear() ? " ’" + String(d.getUTCFullYear()).slice(2) : ""}`;
+    return [{ w: (m1 - t) / (7 * DAY), l: lbl(m1, "Mitte") }, { w: (m2 - t) / (7 * DAY), l: lbl(m2, "Ende") }];
+  }
   function ziele(parent, cache) {
     const kr = cache.kraft || [];
-    const z = zyklusHalt(cache);
     const seen = new Set(), exs = [];
     ["A", "B"].forEach((k) => PLAN[k].forEach((e) => { if (!seen.has(e.u)) { seen.add(e.u); exs.push(e); } }));
-    const end = new Date(Date.now() + ZIEL_WOCHEN * 7 * DAY);
-    const c = card(parent, "Deine Ziele", `Wo du jetzt stehst, der nächste Schritt und wo du ${wann(ZIEL_WOCHEN)} sein kannst (Termine ungefähr)`);
+    const ms = meilensteine();
+    const c = card(parent, "Deine Ziele", `Gleiche Termine für alle Übungen: ${ms[0].l} und ${ms[1].l}`);
     const rows = exs.map((ex) => {
-      const g = target(ex, kr, false);
+      const g = target(ex, kr, false), pro = ex.side ? " pro Seite" : "";
       if (ex.bw) {
-        const last = kr.filter((r) => r.uebung === ex.u);
-        const now = last.length ? Math.max(1, g.aim - (g.up ? 0 : 1)) : null;
-        const goal = ex.hi, wk = now == null ? 4 : Math.max(0, goal - now); // etwa 1 Wiederholung pro Woche
-        return { u: ex.u, now: now == null ? "noch offen" : `3 × ${now}`, next: `3 × ${goal}`, nextWhen: wann(wk), end: goal <= now ? "dann langsamer oder mit Gewicht" : "", endWhen: "" };
+        const has = kr.some((r) => r.uebung === ex.u);
+        const now = has ? Math.max(1, g.aim - (g.up ? 0 : 1)) : null, base = now == null ? ex.lo : now;
+        const at = (w) => Math.min(ex.hi, base + Math.floor(w)); // etwa 1 Wiederholung pro Woche
+        return { u: ex.u, now: now == null ? "noch offen" : `3 × ${now}`, m: ms.map((m) => at(m.w) >= ex.hi && base >= ex.hi ? "langsamer oder mit Gewicht" : `3 × ${at(m.w)}`) };
       }
       const step = ex.step || 5, wps = tempo(ex, kr);
-      const now = g.up ? g.w - step : g.w;
-      const firstIn = g.up ? 0 : wps;
-      const n = Math.max(1, 1 + Math.floor((ZIEL_WOCHEN - firstIn) / wps));
-      // Wiederholungen dazu: jetzt das aktuelle Ziel, nach jeder Steigerung wieder unten im Bereich anfangen
-      const pro = ex.side ? " pro Seite" : "";
+      const now = g.up ? g.w - step : g.w, firstIn = g.up ? 0 : wps;
       const nowReps = g.up ? ex.hi : g.aim;
-      return { u: ex.u, now: `${kg(ex, now)}\n3\u00a0×\u00a0${nowReps}${pro}`, next: `${kg(ex, now + step)}\n3\u00a0×\u00a0${ex.lo}${pro}`, nextWhen: wann(firstIn), end: `${kg(ex, now + n * step)}\n3\u00a0×\u00a0${ex.lo}${pro}`, endWhen: wann(firstIn + (n - 1) * wps) };
+      const at = (w) => { const n = w < firstIn ? 0 : 1 + Math.floor((w - firstIn) / wps); return n ? `${kg(ex, now + n * step)}\n3 × ${ex.lo}${pro}` : `${kg(ex, now)}\n3 × ${ex.hi}${pro}`; };
+      return { u: ex.u, now: `${kg(ex, now)}\n3 × ${nowReps}${pro}`, m: ms.map((m) => at(m.w)) };
     });
     const lauf = (cache.laufen || []).slice().sort((a, b) => a.datum.localeCompare(b.datum));
     const lm = lauf.length && lauf[lauf.length - 1].dauer_s ? Math.round(lauf[lauf.length - 1].dauer_s / 60) : null;
-    const lw = lm == null ? 3 : Math.max(0, Math.ceil((LAUF_ZIEL_MIN - lm) / 5));
+    const lAt = (w) => Math.min(LAUF_ZIEL_MIN, (lm == null ? 25 : lm) + Math.floor(w) * 5);
     c.insertAdjacentHTML("beforeend", `
-      <div class="z-head"><span></span><span>jetzt</span><span>nächster Schritt</span><span>Ziel</span></div>
+      <div class="z-head"><span></span><span>jetzt</span><span>${esc(ms[0].l)}</span><span>${esc(ms[1].l)}</span></div>
       ${rows.map((r) => `<div class="z-row"><b>${esc(r.u.replace(" im Liegestütz", ""))}</b>
-        <span class="z-now">${esc(r.now)}</span>
-        <span>${esc(r.next)}<small>${esc(r.nextWhen)}</small></span>
-        <span class="z-end">${esc(r.end)}<small>${esc(r.endWhen)}</small></span></div>`).join("")}
+        <span class="z-now">${esc(r.now)}</span><span>${esc(r.m[0])}</span><span class="z-end">${esc(r.m[1])}</span></div>`).join("")}
       <div class="z-row"><b>Laufen</b><span class="z-now">${lm != null ? lm + " Min." : "noch offen"}</span>
-        <span>${LAUF_ZIEL_MIN} Min. locker<small>${esc(wann(lw))}</small></span><span class="z-end">schneller bei gleichem Puls<small>2× pro Woche, Puls unter ${PULS_MAX}</small></span></div>
-      <p class="c-hint">Bei jedem neuen Gewicht fängst du unten im Bereich an und steigerst die Wiederholungen bis zur oberen Zahl, dann kommt das nächste Gewicht. Die Termine sind Schätzungen aus deinem bisherigen Tempo und passen sich an, wenn du schneller oder langsamer bist.${z.hold ? " Gerade ist Halten dran, das verschiebt die Termine etwas." : ""} Bouldern-Ziele kommen dazu, sobald die Ringbänder wieder ganz okay sind.</p>`);
+        <span>${lAt(ms[0].w)} Min. locker</span><span class="z-end">${lAt(ms[1].w)} Min., schneller bei gleichem Puls</span></div>
+      <details class="z-why"><summary>ⓘ Wie rechnet die App?</summary><p>Bei jedem neuen Gewicht fängst du unten im Bereich an und steigerst die Wiederholungen bis zur oberen Zahl, dann kommt das nächste Gewicht (5-kg-Schritte). Das Tempo kommt aus deinem bisherigen Verlauf. In Lutealphase und Periode wird gehalten, deshalb sind es Schätzungen.</p></details>`);
   }
 
   window.TBPlan = { kraft, laufen, woche, ziele, PLAN };

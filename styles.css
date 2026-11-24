@@ -713,3 +713,53 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .k-row.on .k-rn { color: var(--hi); font-weight: 700; }
 details.fold > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
 details.fold > summary::-webkit-details-marker { display: none; }
+
+/* ---------- Heute: Essen als Dreifach-Kranz ---------- */
+.today-food .tf-num { font-size: 3rem !important; line-height: 1 !important; }
+[data-design="terminal"] .today-food .tf-num { font-size: 4.2rem !important; }
+.tf-ring.tri { width: 118px; height: 118px; }
+.tf-ring.tri circle { stroke-width: 9 !important; stroke-linecap: round; }
+.tf-ring.tri .tf-ring-p { stroke: var(--c2); }
+.tf-ring.tri .tf-ring-b { stroke: var(--c4); }
+.tf-ring.tri .tf-ring-fg, .tf-ring.tri .tf-ring-p, .tf-ring.tri .tf-ring-b { transition: stroke-dasharray .4s ease; }
+.tf-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px; font-size: .8rem; color: inherit; }
+.tf-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.tf-leg b { color: inherit; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tf-leg b small { opacity: .6; font-weight: 400; }
+.tf-li { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.tf-li.k { background: var(--hi); } .tf-li.p { background: var(--c2); } .tf-li.b { background: var(--c4); }
+[data-design="beton"] .tf-ring.tri .tf-ring-fg { stroke: #ffe14d; }
+[data-design="bauhaus"] .tf-ring.tri .tf-ring-p { stroke: var(--yellow); } [data-design="bauhaus"] .tf-li.p { background: var(--yellow); }
+[data-design="bauhaus"] .tf-ring.tri .tf-ring-b { stroke: #fff; } [data-design="bauhaus"] .tf-li.b { background: #fff; }
+[data-design="bauhaus"] .tf-li.k { background: var(--red); }
+
+.zu-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgb(var(--w) / .12); }
+.zu-more summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.zu-more summary::-webkit-details-marker { display: none; }
+.zu-more[open] .zu-chev { transform: rotate(180deg); }
+.zu-chev { transition: transform .2s; font-size: 1rem; }
+.zu-more .zu-tips { margin-top: 10px; padding-top: 0; border-top: 0; }
+.z-ring-card .zu-ring { width: min(250px, 70vw); max-width: none; margin: 0 auto; display: block; }
+
+.supp-toggle { display: flex; align-items: center; gap: 10px; flex: 1; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.supp-toggle .c-title { margin: 0; }
+.supp.zu { padding-top: 14px; padding-bottom: 14px; }
+.supp-st { font-size: .78rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgb(var(--w) / .1); color: var(--muted); font-variant-numeric: tabular-nums; }
+.supp-st.ok { background: var(--c2); color: #fff; padding: 3px 8px; }
+.supp-chev { margin-left: auto; color: var(--muted); transition: transform .2s; }
+.supp-chev.up { transform: rotate(180deg); }
+
+.z-why { margin-top: 10px; font-size: .82rem; line-height: 1.45; }
+.z-why summary { cursor: pointer; color: var(--muted); list-style: none; font-size: .8rem; }
+.z-why summary::-webkit-details-marker { display: none; }
+.z-why p { margin: 6px 0 0; color: var(--muted); }
+
+.k-selten summary { display: flex; justify-content: space-between; align-items: baseline; cursor: pointer; list-style: none; }
+.k-selten summary::-webkit-details-marker { display: none; }
+.k-selten summary .c-title { margin: 0; }
+.k-selten[open] .k-cnt { visibility: hidden; }
+.k-selten-item { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgb(var(--w) / .1); }
+.k-selten-item .c-title { font-size: 1rem; margin: 0 0 6px; }
+
+.c-table td.c-best { color: #d23c3c; font-weight: 800; }
+[data-theme$="dunkel"] .c-table td.c-best, [data-theme$="nacht"] .c-table td.c-best, [data-design="glas"] .c-table td.c-best, [data-design="terminal"] .c-table td.c-best { color: #ff6b6b; }
