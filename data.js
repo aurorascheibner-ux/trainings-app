@@ -449,19 +449,9 @@ function renderToday() {
 
   renderEssenHeute();
 
-  const c = cycleInfo();
-  $('[data-sum="zyklus"]').textContent = c ? `Tag ${c.day} · ${c.phase}` : "Noch nichts eingetragen";
-  if (c) {
-    const frac = Math.min(1, (c.day - 1) / c.len);
-    const track = $("#cycle-track");
-    const p = track.getPointAtLength(track.getTotalLength() * frac);
-    $("#cycle-dot").setAttribute("cx", p.x);
-    $("#cycle-dot").setAttribute("cy", p.y);
-    $("#cycle-done").setAttribute("stroke-dasharray", `${frac * 100} 100`);
-    const tip = $("#cycle-tip");
-    tip.hidden = !PHASE_TIPP[c.phase];
-    tip.textContent = PHASE_TIPP[c.phase] || "";
-    $("#cycle-text").textContent = `${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
+  // Zyklus-Uhr als Punktekranz (charts.js)
+  if (window.TBCharts && window.TBCharts.heuteUhr) {
+    try { window.TBCharts.heuteUhr($("[data-zuhr]"), cache); } catch (e) { console.error("Zyklus-Uhr", e); }
   }
 
   if (window.TBSupp) window.TBSupp.render($("[data-supp]"), db, cache);

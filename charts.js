@@ -844,6 +844,65 @@
     return { ziel: base, why, n: eat.length, kcal: Math.round(sum("kcal")), p: Math.round(sum("protein_g")), b: Math.round(sum("ballast_g")) };
   }
 
+  // ---------- Heute: Zyklus-Uhr als Punktekranz ----------
+  const KURZ = { Periode: "Periode", Follikelphase: "Follikel", Eisprung: "Eisprung", Lutealphase: "Luteal" };
+  const UHR_TIPP = {
+    Periode: ["Nach Gefühl: Technik, locker, kurz", "Auf Erhaltung, eisenreich", "Weniger Energie ist normal"],
+    Follikelphase: ["Schwer heben, Projekte", "Normal nach Plan", "Viel Energie, schnelle Erholung"],
+    Eisprung: ["Power hoch, gründlich aufwärmen", "Normal, Eiweiß verteilen", "Bänder etwas lockerer"],
+    Lutealphase: ["Volumen und Technik, Läufe nach Puls", "Etwa 150 kcal mehr", "Mehr Hunger und Wasser sind normal"],
+  };
+  function heuteUhr(el, cache) {
+    if (!el) return;
+    C = { ...cache, phasen: phasen(cache.zyklus) };
+    const z = zyklusHeute();
+    if (!z) { el.innerHTML = `<h2 data-sum="zyklus">Noch nichts eingetragen</h2><p class="muted small">Sobald du deinen Zyklus einträgst, siehst du hier, wo du gerade stehst.</p>`; return; }
+    const ti = iso(todayUTC()), t0 = todayUTC();
+    const cyc = C.phasen.filter((p) => p.phase === "Periode" && !p.prognose && p.start <= ti).pop() || C.phasen.filter((p) => p.phase === "Periode" && p.start <= ti).pop();
+    const parts = C.phasen.filter((p) => p.zyklus_start === cyc.start);
+    const L = Math.max(z.len, z.day);
+    const dayOf = (s) => Math.round((pd(s) - pd(cyc.start)) / DAY) + 1;
+    const phaseDay = (d) => { const s = iso(+pd(cyc.start) + (d - 1) * DAY); const p = parts.find((x) => x.start <= s && s <= x.ende); return p ? p.phase : "Lutealphase"; };
+    const ov = parts.find((p) => p.phase === "Eisprung"), ovDay = ov ? dayOf(ov.start) + 1 : null;
+    // Punkte
+    const cx = 100, cy = 100, R = 80, step = (2 * Math.PI * R) / L, rd = Math.max(2.4, Math.min(7, step * 0.36));
+    const ang = (d) => ((d - 0.5) / L) * 2 * Math.PI - Math.PI / 2;
+    let dots = "";
+    for (let d = 1; d <= L; d++) {
+      if (d === z.day) continue;
+      const a = ang(d), x = (cx + R * Math.cos(a)).toFixed(1), y = (cy + R * Math.sin(a)).toFixed(1), col = BANDC[phaseDay(d)];
+      if (d === ovDay) dots += `<text x="${x}" y="${(+y + rd * 1.1).toFixed(1)}" text-anchor="middle" style="fill:${col};font-size:${Math.max(11, rd * 3)}px">★</text>`;
+      else if (d < z.day) dots += `<circle cx="${x}" cy="${y}" r="${rd.toFixed(1)}" style="fill:${col}"/>`;
+      else dots += `<circle cx="${x}" cy="${y}" r="${(rd - 0.8).toFixed(1)}" fill="none" style="stroke:${col}" stroke-width="${Math.min(2.4, rd * 0.4).toFixed(1)}"/>`;
+    }
+    const a = ang(z.day), tx = (cx + R * Math.cos(a)).toFixed(1), ty = (cy + R * Math.sin(a)).toFixed(1);
+    dots += `<circle cx="${tx}" cy="${ty}" r="12.5" style="fill:${BANDC[z.phase]};stroke:var(--text)" stroke-width="3"/><text x="${tx}" y="${(+ty + 3.6).toFixed(1)}" text-anchor="middle" style="fill:#1c1a17;font-size:${z.day > 99 ? 8 : 10}px;font-weight:700">${z.day}</text>`;
+    // Texte
+    const tage = (n) => n + (n === 1 ? " Tag" : " Tagen");
+    let ovTxt = "";
+    if (ovDay) ovTxt = z.day < ovDay - 1 ? "in " + tage(ovDay - z.day) : z.phase === "Eisprung" ? "ungefähr jetzt" : "vor etwa " + tage(z.day - ovDay);
+    const starts = (cache.zyklus || []).map((r) => r.periode_start).filter(Boolean).sort();
+    const gaps = starts.slice(1).map((s, i) => Math.round((pd(s) - pd(starts[i])) / DAY)).filter((g) => g >= 18 && g <= 45);
+    const avgL = gaps.length ? Math.round(gaps.reduce((x, y) => x + y, 0) / gaps.length) : 26;
+    const dmy = (t) => new Date(t).toLocaleDateString("de-DE", { day: "numeric", month: "short", timeZone: "UTC" });
+    const per = z.overdue
+      ? `<b>überfällig</b><span>erwartet war ca. ${dmy(+pd(cyc.start) + avgL * DAY)}</span>`
+      : z.next != null ? `<b>in ca. ${tage(z.next)}</b><span>um den ${dmy(+t0 + z.next * DAY)}</span>` : "";
+    const sick = (C.befinden || []).find((r) => r.status === "krank" && r.datum_von <= ti && (!r.datum_bis || ti <= r.datum_bis));
+    const tp = UHR_TIPP[z.phase].slice();
+    if (sick) { tp[0] = "Pause, erst gesund werden"; tp[1] = "Auf Erhaltung, viel trinken"; }
+    const center = z.overdue ? `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="zu-c1">${KURZ[z.phase]}</text><text x="${cx}" y="${cy + 17}" text-anchor="middle" class="zu-c2">Tag ${z.day}</text>`
+      : `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="zu-c1">${KURZ[z.phase]}</text><text x="${cx}" y="${cy + 19}" text-anchor="middle" class="zu-c2">Tag ${z.day} von ca. ${avgL}</text>`;
+    el.innerHTML = `<div class="zu">
+      <svg class="zu-ring" viewBox="0 0 200 200" role="img" aria-label="Zyklustag ${z.day}, ${z.phase}">${dots}${center}</svg>
+      <div class="zu-side">
+        <div><span class="zu-k">Phase</span><h2 data-sum="zyklus">${z.phase}</h2></div>
+        ${ovTxt ? `<div><span class="zu-k">Eisprung</span><b>${ovTxt}</b></div>` : ""}
+        ${per ? `<div><span class="zu-k">Periode</span>${per}</div>` : ""}
+      </div></div>
+      <div class="zu-tips">${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div>`;
+  }
+
   // Für die Zyklus-Seite direkt unter dem Ring
   function zyklusTop(el, cache) {
     if (!window.d3) return;
@@ -852,5 +911,5 @@
     try { formKarte(el); hormonKarte(el); } catch (e) { console.error("Zyklus-Karten", e); }
   }
 
-  window.TBCharts = { render, phasen, essenHeute, zyklusTop, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
+  window.TBCharts = { render, phasen, essenHeute, zyklusTop, heuteUhr, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
 })();
