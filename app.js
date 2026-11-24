@@ -160,3 +160,14 @@ showView();
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
+
+// ---------- Bewegter Hintergrund (Wunsch 24.11.) ----------
+// Die Formen hinter den Kacheln wandern beim Scrollen langsamer mit als der Inhalt.
+// Bei „Bewegung reduzieren“ im Handy bleibt alles still (CSS).
+(() => {
+  const root = document.documentElement;
+  let ticking = false;
+  const set = () => { root.style.setProperty("--sy", String(Math.round(window.scrollY))); ticking = false; };
+  window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(set); } }, { passive: true });
+  set();
+})();

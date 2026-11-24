@@ -763,3 +763,35 @@ details.fold > summary::-webkit-details-marker { display: none; }
 
 .c-table td.c-best { color: #d23c3c; font-weight: 800; }
 [data-theme$="dunkel"] .c-table td.c-best, [data-theme$="nacht"] .c-table td.c-best, [data-design="glas"] .c-table td.c-best, [data-design="terminal"] .c-table td.c-best { color: #ff6b6b; }
+
+/* ---------- Bewegter Hintergrund (Wunsch 24.11.2026) ----------
+   Vier weiche Formen in der Farbe der aktuellen Zyklusphase.
+   Beim Scrollen wandern sie unterschiedlich schnell (Tiefe). Tippen löst nichts aus. */
+:root { --phase: var(--hi); --sy: 0; --fx-a: 26%; --fx-blur: 46px; }
+html[data-phase="Periode"]       { --phase: #d9728f; }
+html[data-phase="Follikelphase"] { --phase: #5fb88f; }
+html[data-phase="Eisprung"]      { --phase: #e0c04f; }
+html[data-phase="Lutealphase"]   { --phase: #9b8be0; }
+html[data-phase] { --fx-col: color-mix(in srgb, var(--phase) 70%, var(--tint)); }
+.bgfx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.bgfx i {
+  position: absolute; display: block; border-radius: 50%;
+  background: color-mix(in srgb, var(--fx-col, var(--phase)) var(--fx-a), transparent);
+  filter: blur(var(--fx-blur));
+  transition: background 1.2s ease;
+  will-change: transform;
+}
+.bgfx i:nth-child(1) { width: 62vmax; height: 62vmax; left: -22vmax; top: -18vmax; transform: translate3d(0, calc(var(--sy) * -0.12px), 0); }
+.bgfx i:nth-child(2) { width: 46vmax; height: 46vmax; right: -18vmax; top: 30vh;  transform: translate3d(0, calc(var(--sy) * -0.28px), 0) rotate(calc(var(--sy) * .04deg)); border-radius: 42% 58% 55% 45%; opacity: .8; }
+.bgfx i:nth-child(3) { width: 34vmax; height: 34vmax; left: 8vw;    top: 95vh;  transform: translate3d(0, calc(var(--sy) * -0.42px), 0); opacity: .7; }
+.bgfx i:nth-child(4) { width: 26vmax; height: 26vmax; right: 4vw;   top: 160vh; transform: translate3d(0, calc(var(--sy) * -0.55px), 0); opacity: .6; background: color-mix(in srgb, var(--c4) var(--fx-a), transparent); }
+/* helle Designs: etwas zarter */
+:root:where([data-theme*="papier"]:not([data-theme$="dunkel"]), [data-theme^="stein"]:not([data-theme$="abend"]), [data-theme="tinte-creme"], [data-theme^="bento"]:not([data-theme$="dunkel"])) { --fx-a: 20%; }
+/* Bauhaus: klare Formen statt Nebel */
+[data-design="bauhaus"] { --fx-blur: 0px; --fx-a: 14%; }
+[data-design="bauhaus"] .bgfx i:nth-child(2) { border-radius: 0; }
+/* Terminal: nur ein leises Leuchten */
+[data-design="terminal"] { --fx-a: 10%; }
+@media (prefers-reduced-motion: reduce) {
+  .bgfx i { transform: none !important; transition: none; }
+}

@@ -438,6 +438,8 @@ function renderEssenHeute() {
 }
 
 function renderToday() {
+  // Hintergrund in der Farbe der Zyklusphase (Wunsch 24.11.)
+  try { const z = cycleInfo(); if (z && z.phase) document.documentElement.dataset.phase = z.phase; else delete document.documentElement.dataset.phase; } catch {}
   const t = today();
   const trainings = [
     ...(cache.bouldern || []).filter((r) => r.datum === t).map(() => "Bouldern"),
