@@ -325,8 +325,12 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
     return;
   }
   let lastDate = null;
+  // Essen: Tagessumme neben dem Datum
+  const daySum = {};
+  if (table === "ernaehrung") (cache.ernaehrung || []).forEach((r) => { const o = daySum[r.datum] || (daySum[r.datum] = { k: 0, p: 0 }); o.k += Number(r.kcal) || 0; o.p += Number(r.protein_g) || 0; });
+  const sumTxt = (d) => daySum[d] ? `<span class="day-sum">${fmtNum(Math.round(daySum[d].k))} kcal · ${fmtNum(Math.round(daySum[d].p))} g Eiweiß</span>` : "";
   el.innerHTML = items.map((it) => {
-    const head = it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}</h3>` : "";
+    const head = it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}${sumTxt(it.date)}</h3>` : "";
     lastDate = it.date;
     return `${head}<button type="button" class="glass entry" data-edit="${table}" data-key="${esc(it.key)}">
       <span class="entry-main"><strong>${esc(it.title)}</strong>${it.sub ? `<span class="muted small">${esc(it.sub)}</span>` : ""}${it.note ? `<span class="note small">${esc(it.note)}</span>` : ""}</span>
@@ -748,10 +752,18 @@ document.addEventListener("click", (e) => {
 
 // „Tag A/B eintragen“ aus der Plan-Karte: alle Übungen mit geplantem Gewicht vorbefüllt
 window.addEventListener("tb-plan", (e) => openForm("kraft", null, e.detail));
+// Essen für einen anderen Tag nachtragen (Pfeile auf der Ziel-Karte)
+function openFormAm(table, datum) {
+  openForm(table);
+  const f = $("#entry-form").elements[TABLES[table].dateField];
+  if (f && datum) f.value = datum;
+}
+window.addEventListener("tb-add", (e) => openFormAm(e.detail.table, e.detail.datum));
 
 $("#fab").addEventListener("click", () => {
   const view = (location.hash.replace("#", "") || "heute");
   if (view === "training") return openForm(sport);
+  if (view === "ernaehrung" && window.TBCharts && window.TBCharts.foodDay && window.TBCharts.foodDay()) return openFormAm("ernaehrung", window.TBCharts.foodDay());
   if (VIEW_TABLES[view]) return openForm(VIEW_TABLES[view][0]);
   openPicker();
 });

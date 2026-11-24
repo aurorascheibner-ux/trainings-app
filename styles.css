@@ -531,3 +531,20 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .z-row > span { white-space: pre-line; }
 .off-basis { font-size: .7rem; padding: 1px 6px; border-radius: 8px; background: rgba(255, 255, 255, .14); font-weight: 600; }
 .off-note { margin: 6px 0 4px; }
+
+/* Essen: Tage blättern und Verlauf */
+.f-nav { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; flex-wrap: wrap; }
+.f-nav .icon-btn { font-size: 1.3rem; line-height: 1; width: 36px; height: 36px; }
+.f-nav .icon-btn:disabled { opacity: .3; }
+.f-day { font-weight: 700; min-width: 92px; text-align: center; }
+.f-today { margin-left: auto; }
+.f-chips { margin: 2px 0 8px; }
+.f-chips .chip { padding: 6px 12px; font-size: .8rem; }
+.f-svg { width: 100%; height: auto; display: block; }
+.f-hit { fill: transparent; }
+.f-col.sel .f-hit { fill: rgba(255, 255, 255, .08); }
+.f-bar { fill: var(--hi); }
+.f-bar.off { fill: #e07a5f; }
+.f-ziel { stroke: var(--text); stroke-width: 2; opacity: .8; }
+.day-sum { float: right; text-transform: none; letter-spacing: 0; font-weight: 600; opacity: .9; }
+
