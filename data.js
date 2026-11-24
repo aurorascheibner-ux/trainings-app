@@ -173,8 +173,8 @@ const EMPTY_TEXT = {
   rad: "Noch keine Radfahrt eingetragen.",
   ernaehrung: "Heute noch nichts gegessen eingetragen.",
   zyklus: "Trag den Beginn deiner letzten Periode ein, dann siehst du auf „Heute“ deinen Zyklustag.",
-  befinden: "Hier trägst du ein, wenn du krank oder verletzt bist oder wie es dir geht.",
-  koerper: "Noch keine Messung eingetragen. Schick mir einfach einen Screenshot deiner Waage, ich sortiere dir die Werte.",
+  befinden: "Alles gut, nichts eingetragen.",
+  koerper: "Noch keine Messung eingetragen.",
 };
 
 // ---------- Verbindung ----------
@@ -366,21 +366,41 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
   const daySum = {};
   if (table === "ernaehrung") (cache.ernaehrung || []).forEach((r) => { const o = daySum[r.datum] || (daySum[r.datum] = { k: 0, p: 0 }); o.k += Number(r.kcal) || 0; o.p += Number(r.protein_g) || 0; });
   const sumTxt = (d) => daySum[d] ? `<span class="day-sum">${fmtNum(Math.round(daySum[d].k))} kcal · ${fmtNum(Math.round(daySum[d].p))} g Eiweiß</span>` : "";
-  el.innerHTML = items.map((it) => {
+  // Lange Listen: erst die letzten 7 Tage mit Einträgen, der Rest auf Knopfdruck
+  const days = [...new Set(items.map((it) => it.date))];
+  const cut = !showAll.has(table) && days.length > 7 ? days[6] : null;
+  const shown = cut ? items.filter((it) => it.date >= cut) : items;
+  el.innerHTML = shown.map((it) => {
     const head = it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}${sumTxt(it.date)}</h3>` : "";
     lastDate = it.date;
     return `${head}<button type="button" class="glass entry" data-edit="${table}" data-key="${esc(it.key)}">
       <span class="entry-main"><strong>${esc(it.title)}</strong>${it.sub ? `<span class="muted small">${esc(it.sub)}</span>` : ""}${it.note ? `<span class="note small">${esc(it.note)}</span>` : ""}</span>
       <span class="chev" aria-hidden="true">›</span></button>`;
-  }).join("");
+  }).join("") + (cut ? `<button type="button" class="btn ghost more-btn" data-more="${table}">Ältere Einträge (${days.length - 7} Tage) ⌄</button>` : "");
 }
+const showAll = new Set();
+document.addEventListener("click", (e) => {
+  const m = e.target.closest("[data-more]"); if (!m) return;
+  showAll.add(m.dataset.more); renderAll();
+});
 
 function renderTraining() {
-  $$(".chip").forEach((c) => c.classList.toggle("active", c.dataset.sport === sport));
+  $$(".chip[data-sport]").forEach((c) => c.classList.toggle("active", c.dataset.sport === sport));
   renderList($('[data-list="training"]'), "training", sport);
 }
 
-$$(".chip").forEach((c) => c.addEventListener("click", () => {
+// Körper-Seite: Körperwerte (Waage) und Befinden (krank, Energie) getrennt (Wunsch 24.11.)
+let ksub = (() => { try { return localStorage.getItem("ksub") || "koerper"; } catch { return "koerper"; } })();
+function renderKsub() {
+  $$(".chip[data-ksub]").forEach((c) => c.classList.toggle("active", c.dataset.ksub === ksub));
+  $$("[data-ksub-box]").forEach((b) => (b.hidden = b.dataset.ksubBox !== ksub));
+}
+function setKsub(v) { ksub = v; try { localStorage.setItem("ksub", v); } catch {} renderKsub(); }
+$$(".chip[data-ksub]").forEach((c) => c.addEventListener("click", () => { setKsub(c.dataset.ksub); renderCharts(); }));
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-goto-ksub]"); if (t) setKsub(t.dataset.gotoKsub); });
+renderKsub();
+
+$$(".chip[data-sport]").forEach((c) => c.addEventListener("click", () => {
   sport = c.dataset.sport;
   try { localStorage.setItem("sport", sport); } catch {}
   renderTraining();
@@ -806,10 +826,24 @@ function openFormAm(table, datum) {
   if (f && datum) f.value = datum;
 }
 window.addEventListener("tb-add", (e) => openFormAm(e.detail.table, e.detail.datum));
+// Ein Antippen bei „Passt noch heute“: sofort speichern, ohne Formular
+window.addEventListener("tb-quickadd", async (e) => {
+  const { table, rec } = e.detail;
+  let { error } = await db.from(table).insert(rec);
+  if (error && /column|schema cache/i.test(error.message || "")) {
+    ["kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"].forEach((k) => delete rec[k]);
+    ({ error } = await db.from(table).insert(rec));
+  }
+  if (error) { console.error(error); toast("Eintragen hat nicht geklappt."); return; }
+  toast(rec.lebensmittel + " eingetragen ✓");
+  await load(table);
+  renderAll();
+});
 
 $("#fab").addEventListener("click", () => {
   const view = (location.hash.replace("#", "") || "heute");
   if (view === "training") return openForm(sport);
+  if (view === "befinden") return openForm(ksub);
   if (view === "ernaehrung" && window.TBCharts && window.TBCharts.foodDay && window.TBCharts.foodDay()) return openFormAm("ernaehrung", window.TBCharts.foodDay());
   if (VIEW_TABLES[view] && VIEW_TABLES[view].length > 1) return openPicker(VIEW_TABLES[view]);
   if (VIEW_TABLES[view]) return openForm(VIEW_TABLES[view][0]);

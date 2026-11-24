@@ -178,7 +178,7 @@
           <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
           <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
         </a>
-        <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
+        <a class="glass tile" href="#befinden" data-tile="befinden" data-goto-ksub="befinden" style="--accent: var(--c4)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
           <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
         </a>
@@ -216,11 +216,18 @@
     </section>
 
     <section class="view" data-view="befinden" hidden>
-      <div class="charts" data-charts="befinden"></div>
-      <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
-      <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
-      <h3 class="section-h">Befinden</h3>
-      <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
+      <div class="chips" role="tablist" aria-label="Körper oder Befinden">
+        <button type="button" class="chip" data-ksub="koerper">Körperwerte</button>
+        <button type="button" class="chip" data-ksub="befinden">Befinden</button>
+      </div>
+      <div data-ksub-box="koerper">
+        <div class="charts" data-charts="befinden"></div>
+        <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
+        <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
+      </div>
+      <div data-ksub-box="befinden" hidden>
+        <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
+      </div>
     </section>
   </main>
 
@@ -237,6 +244,7 @@
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="ex-icons.js"></script>
   <script src="charts.js"></script>
   <script src="zyklus.js"></script>
   <script src="plan.js"></script>
