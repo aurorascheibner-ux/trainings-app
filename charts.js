@@ -375,6 +375,82 @@
     Eisprung: { titel: "Rund um den Eisprung", stark: ["Kraft und Power oft am höchsten", "Dynamische Züge und Maximalkraft"], achte: ["Bänder können lockerer sein", "Gründlich aufwärmen, Sprünge kontrolliert landen"], essen: "Normal weiter, Protein über den Tag verteilt.", tipp: "Power ja, aber erst sauber aufwärmen." },
     Lutealphase: { titel: "Lutealphase", stark: ["Volumen und Ausdauer", "Technik und Wiederholen von Bekanntem", "Lockere Läufe nach Puls"], achte: ["Ruhepuls und Temperatur sind höher, gleiche Pace fühlt sich härter an", "Mehr Pausen, gegen Ende sinkt die Energie oft"], essen: "Der Körper verbraucht etwas mehr: Protein eher am oberen Ende, mehr trinken. Mehr Hunger ist normal.", tipp: "Pace nach Puls statt nach Uhr, Volumen statt Maximalversuche." },
   };
+  // ---------- Zyklus: deine Form in dieser Phase (eigene Zahlen) ----------
+  function formKarte(parent) {
+    const z = zyklusHeute(); if (!z) return;
+    const P = z.phase, avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const body = card(parent, "Deine Form in dieser Phase", "Aus deinen eigenen Einträgen, verglichen mit den anderen Phasen.");
+    const head = E("div", "zf-head");
+    head.append(E("span", "zf-dot"), E("b", "", PHASE_INFO[P].titel), E("span", "zf-tag", "Tag " + z.day));
+    head.firstChild.style.background = BANDC[P];
+    body.appendChild(head);
+    const grid = E("div", "zf-grid");
+    const tile = (lbl, big, sub, good) => { const t = E("div", "zf-tile"); t.append(E("span", "zf-l", lbl), E("span", "zf-n", big), E("span", "zf-s" + (good === true ? " gut" : good === false ? " schwach" : ""), sub)); grid.appendChild(t); };
+    // Bouldern: Ø schwerster Grad in dieser Phase vs. den anderen
+    const gi = (r) => GRADES.indexOf(String(r.max_grad || "").trim());
+    const bIn = (C.bouldern || []).filter((r) => phaseOn(r.datum) === P && gi(r) >= 0).map(gi);
+    const bOut = (C.bouldern || []).filter((r) => phaseOn(r.datum) && phaseOn(r.datum) !== P && gi(r) >= 0).map(gi);
+    if (bIn.length) { const d = bOut.length ? avg(bIn) - avg(bOut) : 0, st = Math.round(d * 2) / 2;
+      tile("Ø schwerster Boulder", GRADES[Math.round(avg(bIn))], !bOut.length ? bIn.length + " Sessions" : Math.abs(st) < 0.5 ? "wie in den anderen Phasen" : (st > 0 ? "▲ " : "▼ ") + fnum(Math.abs(st)) + (Math.abs(st) === 1 ? " Stufe" : " Stufen") + (st > 0 ? " höher" : " tiefer"), Math.abs(st) < 0.5 ? null : st > 0);
+    } else tile("Ø schwerster Boulder", "–", "noch keine Session in dieser Phase");
+    // Kraft: schwerster Satz je Training im Verhältnis zum Schnitt dieser Übung
+    const best = new Map(); (C.kraft || []).filter((r) => Number(r.gewicht_kg) > 0).forEach((r) => { const k = r.datum + "|" + r.uebung; best.set(k, Math.max(best.get(k) || 0, Number(r.gewicht_kg))); });
+    const perU = new Map(); best.forEach((v, k) => { const u = k.split("|")[1]; if (!perU.has(u)) perU.set(u, []); perU.get(u).push(v); });
+    const rel = [...best].filter(([k]) => phaseOn(k.split("|")[0]) === P).map(([k, v]) => v / avg(perU.get(k.split("|")[1])));
+    if (rel.length) { const pc = Math.round((avg(rel) - 1) * 100); tile("Kraft, schwerster Satz", (pc > 0 ? "+" : pc < 0 ? "−" : "±") + Math.abs(pc) + " %", Math.abs(pc) < 2 ? "wie dein Schnitt" : pc > 0 ? "mehr als dein Schnitt" : "weniger als dein Schnitt", Math.abs(pc) < 2 ? null : pc > 0); }
+    else tile("Kraft, schwerster Satz", "–", "noch kein Krafttraining in dieser Phase");
+    // Energie aus allen Einträgen mit Energie
+    const en = ["bouldern", "laufen", "befinden"].flatMap((t) => (C[t] || []).filter((r) => r.energie_1_5 != null && phaseOn(r.datum || r.datum_von) === P).map((r) => Number(r.energie_1_5)));
+    tile("Energie", en.length ? fnum(Math.round(avg(en) * 10) / 10) + " / 5" : "–", en.length ? "aus " + en.length + (en.length === 1 ? " Eintrag" : " Einträgen") : "trag Energie beim Training ein");
+    // Beschwerden aus dem Tages-Check
+    const sym = new Map(); let tage = 0;
+    (C.zyklus_tag || []).filter((r) => phaseOn(r.datum) === P).forEach((r) => { tage++; (r.symptome || []).forEach((s) => sym.set(s, (sym.get(s) || 0) + 1)); });
+    const top = [...sym].sort((a, b) => b[1] - a[1]).slice(0, 2);
+    tile("Beschwerden", top.length ? top.map(([s, n]) => s + " " + n + "×").join(", ") : tage ? "kaum" : "–", tage ? "aus " + tage + " Tages-Checks" : "noch kein Tages-Check");
+    body.appendChild(grid);
+    const tipp = E("p", "zf-tipp"); tipp.append(E("b", "", "Heute passt: "), document.createTextNode(PHASE_INFO[P].stark[0] + ". " + PHASE_INFO[P].tipp));
+    body.appendChild(tipp);
+    if ((C.bouldern || []).length + (C.kraft || []).length < 15) body.appendChild(E("p", "c-hint", "Wird mit jedem Zyklus genauer, richtig aussagekräftig nach etwa zwei bis drei Zyklen."));
+  }
+
+  // ---------- Zyklus: Hormon-Kurve (vereinfacht) ----------
+  const HORMON = {
+    Periode: ["Hormone sind niedrig", "Östrogen und Progesteron sind am Tiefpunkt. Deshalb ist die Energie oft geringer, das ist normal."],
+    Follikelphase: ["Östrogen steigt", "Das macht dich kräftiger und belastbarer, du erholst dich schneller."],
+    Eisprung: ["Östrogen auf dem Höhepunkt", "Kraft und Power sind oft am höchsten. Östrogen macht aber auch Bänder etwas lockerer."],
+    Lutealphase: ["Progesteron ist hoch", "Es hebt Ruhepuls und Körpertemperatur leicht an und kostet etwas mehr Energie. Gleiche Pace fühlt sich härter an."],
+  };
+  function hormonKarte(parent) {
+    const z = zyklusHeute(); if (!z) return;
+    const [titel, text] = HORMON[z.phase];
+    const body = card(parent, titel, text);
+    const L = Math.max(21, z.len), ov = L - 14, day = Math.min(z.day, L);
+    const est = (d) => 0.22 + 0.68 * Math.exp(-(((d - ov + 1) / 2.6) ** 2)) + 0.3 * Math.exp(-(((d - ov - 7) / 3.5) ** 2));
+    const prog = (d) => 0.05 + 0.85 * Math.exp(-(((d - ov - 7) / 3.6) ** 2));
+    const W = 340, H = 130, b = 18, X = (d) => ((d - 1) / (L - 1)) * W, Y = (v) => H - b - v * (H - b - 14);
+    const path = (f) => d3.range(0, 101).map((i) => { const d = 1 + (i / 100) * (L - 1); return (i ? "L" : "M") + X(d).toFixed(1) + "," + Y(f(d)).toFixed(1); }).join("");
+    const cyc = C.phasen.filter((p) => p.phase === "Periode" && p.start <= iso(todayUTC())).pop();
+    let bands = "";
+    if (cyc) C.phasen.filter((p) => p.zyklus_start === cyc.start).forEach((p) => {
+      const a = Math.round((pd(p.start) - pd(cyc.start)) / DAY) + 1, e = Math.round((pd(p.ende) - pd(cyc.start)) / DAY) + 1;
+      bands += `<rect x="${X(Math.max(1, a - 0.5)).toFixed(1)}" y="0" width="${Math.max(0, X(Math.min(L, e + 0.5)) - X(Math.max(1, a - 0.5))).toFixed(1)}" height="${H - b}" style="fill:${BANDC[p.phase]}" opacity=".16"/>`;
+    });
+    const tx = X(day);
+    const svg = `<svg class="zh-svg" viewBox="0 0 ${W} ${H}" width="100%">${bands}
+      <path d="${path(est)}" fill="none" style="stroke:var(--c1)" stroke-width="2.6"/><path d="${path(prog)}" fill="none" style="stroke:var(--c4)" stroke-width="2.6"/>
+      <line x1="${tx}" x2="${tx}" y1="0" y2="${H - b}" style="stroke:var(--text)" stroke-dasharray="3 3"/>
+      <circle cx="${tx}" cy="${Y(z.phase === "Lutealphase" ? prog(day) : est(day)).toFixed(1)}" r="5" style="fill:${z.phase === "Lutealphase" ? "var(--c4)" : "var(--c1)"};stroke:var(--card)" stroke-width="2"/>
+      <text x="${tx + (tx > W - 50 ? -6 : 6)}" y="11" class="c-axis" text-anchor="${tx > W - 50 ? "end" : "start"}" style="font-weight:700">heute</text>
+      <text x="2" y="${H - 3}" class="c-axis">Tag 1</text><text x="${X(ov)}" y="${H - 3}" class="c-axis" text-anchor="middle">Eisprung</text><text x="${W - 2}" y="${H - 3}" class="c-axis" text-anchor="end">Tag ${L}</text></svg>`;
+    const wrap = E("div"); wrap.innerHTML = svg; body.appendChild(wrap);
+    legend(body, [["var(--c1)", "Östrogen"], ["var(--c4)", "Progesteron"]]);
+    const row = E("div", "zf-grid");
+    const mini = (l, t) => { const m = E("div", "zf-tile"); m.append(E("span", "zf-l", l), E("span", "zf-t", t)); row.appendChild(m); };
+    mini("Jetzt gut für", PHASE_INFO[z.phase].stark[0]); mini("Achte auf", PHASE_INFO[z.phase].achte[0]);
+    body.appendChild(row);
+    body.appendChild(E("p", "c-hint", z.overdue ? "Deine Periode ist überfällig, die Kurve ist deshalb nur grob geschätzt. Typischer Verlauf, nicht gemessen." : "Typischer Verlauf, vereinfacht und nicht gemessen. Dein Zyklus kann davon abweichen."));
+  }
+
   function zyklusKarten(parent) {
     const ti = iso(todayUTC());
     const cur = C.phasen.find((p) => p.start <= ti && ti <= p.ende);
@@ -768,5 +844,13 @@
     return { ziel: base, why, n: eat.length, kcal: Math.round(sum("kcal")), p: Math.round(sum("protein_g")), b: Math.round(sum("ballast_g")) };
   }
 
-  window.TBCharts = { render, phasen, essenHeute, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
+  // Für die Zyklus-Seite direkt unter dem Ring
+  function zyklusTop(el, cache) {
+    if (!window.d3) return;
+    C = { ...cache, phasen: phasen(cache.zyklus) };
+    el.replaceChildren();
+    try { formKarte(el); hormonKarte(el); } catch (e) { console.error("Zyklus-Karten", e); }
+  }
+
+  window.TBCharts = { render, phasen, essenHeute, zyklusTop, foodDay: () => foodDay, zyklusHeute: (cache) => { C = { ...cache, phasen: phasen(cache.zyklus) }; return zyklusHeute(); } };
 })();

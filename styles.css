@@ -646,3 +646,19 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .k-chips button { flex: none; font: inherit; font-size: .78rem; padding: 6px 12px; border-radius: 999px; border: 1px solid rgb(var(--w) / .15); background: transparent; color: var(--muted); cursor: pointer; }
 .k-chips button.on { background: var(--hi); border-color: var(--hi); color: var(--on-hi); font-weight: 700; }
 .k-tips { margin: 0; padding-left: 18px; font-size: .85rem; line-height: 1.55; }
+
+/* ---------- Zyklus: Form und Hormone ---------- */
+.z-top { display: contents; }
+.zf-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.zf-head b { font-size: 1rem; }
+.zf-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.zf-tag { margin-left: auto; font-size: .78rem; color: var(--muted); }
+.zf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.zf-tile { background: rgb(var(--w) / .05); border: 1px solid rgb(var(--w) / .08); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+.zf-l { display: block; font-size: .72rem; color: var(--muted); }
+.zf-n { display: block; font-family: var(--serif); font-size: 1.45rem; line-height: 1.15; margin-top: 2px; }
+.zf-s { display: block; font-size: .72rem; color: var(--muted); }
+.zf-s.gut { color: var(--c2); font-weight: 700; }
+.zf-t { display: block; font-size: .85rem; line-height: 1.35; margin-top: 3px; }
+.zf-tipp { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid rgb(var(--w) / .1); font-size: .88rem; line-height: 1.45; }
+.zh-svg { display: block; margin: 6px 0 0; overflow: visible; }

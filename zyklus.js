@@ -38,7 +38,9 @@
     const phaseOn = (d) => { const p = phasen.find((x) => x.start <= d && d <= x.ende); return p || null; };
     const tags = new Map((c.cache.zyklus_tag || []).map((r) => [r.datum, r]));
     box.replaceChildren();
-    box.append(ring(phasen, phaseOn, t), kalender(phasen, phaseOn, tags, t), check(tags, phaseOn), auswertung(phasen, t), symptomeJePhase(tags, phaseOn));
+    const top = el(`<div class="charts z-top"></div>`);
+    if (window.TBCharts.zyklusTop) window.TBCharts.zyklusTop(top, c.cache);
+    box.append(ring(phasen, phaseOn, t), top, kalender(phasen, phaseOn, tags, t), check(tags, phaseOn), auswertung(phasen, t), symptomeJePhase(tags, phaseOn));
   }
 
   const el = (html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; };
