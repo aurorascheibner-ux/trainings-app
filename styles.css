@@ -548,3 +548,29 @@ input.ocr { box-shadow: 0 0 0 2px var(--accent, #e0a050) inset; }
 .f-ziel { stroke: var(--text); stroke-width: 2; opacity: .8; }
 .day-sum { float: right; text-transform: none; letter-spacing: 0; font-weight: 600; opacity: .9; }
 
+
+/* ---------- Supplemente ---------- */
+.supp-wrap { margin: 18px 0 0; }
+.supp-wrap:empty { display: none; }
+.supp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.supp-head .small-btn { margin-top: 0; }
+.supp-when { margin: 12px 0 4px; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.supp-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 10px 4px; background: none; border: 0; border-top: 1px solid rgba(255,255,255,.08); color: var(--text); font: inherit; cursor: pointer; }
+.supp-row.soft { opacity: .55; }
+.supp-box { flex: none; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; border: 2px solid color-mix(in srgb, var(--hi) 70%, transparent); font-weight: 800; color: var(--bg2); }
+.supp-row.on .supp-box { background: var(--hi); border-color: var(--hi); }
+.supp-row.on .supp-main b { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text) 50%, transparent); }
+.supp-main { display: grid; gap: 2px; min-width: 0; }
+.supp-menge { color: var(--muted); font-size: .85rem; }
+.supp-info { color: var(--muted); font-size: .78rem; }
+.supp-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 14px 0 6px; text-align: center; font-size: .72rem; color: var(--muted); }
+.supp-week span { display: grid; gap: 4px; justify-items: center; }
+.supp-week i { display: block; width: 100%; max-width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(to top, var(--hi) calc(var(--q) * 100%), rgba(255,255,255,.08) calc(var(--q) * 100%)); }
+.supp-week i.none { background: rgba(255,255,255,.04); }
+.c-hint { margin: 6px 0 0; color: var(--muted); font-size: .75rem; }
+.supp-edit, .supp-add { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.supp-edit.paused { opacity: .6; }
+.supp-edit-top { display: flex; align-items: center; gap: 8px; }
+.supp-edit-top b { flex: 1; }
+.supp-edit-top .small-btn { margin-top: 0; }
+.supp-edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
