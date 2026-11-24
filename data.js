@@ -137,7 +137,35 @@ const TABLES = {
   },
 };
 
-const VIEW_TABLES = { training: ["bouldern", "kraft", "laufen", "rad"], ernaehrung: ["ernaehrung"], zyklus: ["zyklus"], befinden: ["befinden"] };
+// Körperwerte der Waage: Reihenfolge wie in der Waagen-App, damit das Abtippen leicht geht
+const kw = (name, label, step = "0.1") => ({ name, label, type: "number", step, half: true });
+TABLES.koerper = {
+  label: "Körperwerte", dateField: "datum", view: "befinden", optional: true,
+  fields: [
+    { name: "datum", label: "Datum der Messung", type: "date", required: true, half: true },
+    kw("gewicht_kg", "Gewicht (kg)", "0.01"),
+    kw("bmi", "BMI"),
+    kw("koerperfett_pct", "Körperfett (%)"),
+    kw("muskelrate_pct", "Muskelrate (%)"),
+    kw("fettfrei_kg", "Fettfreies Gewicht (kg)"),
+    kw("unterhautfett_pct", "Unterhautfett (%)"),
+    kw("viszeral", "Viszerales Fett"),
+    kw("wasser_pct", "Körperwasser (%)"),
+    kw("skelettmuskel_pct", "Skelettmuskeln (%)"),
+    kw("muskelmasse_kg", "Muskelmasse (kg)"),
+    kw("knochen_kg", "Knochenmasse (kg)"),
+    kw("protein_pct", "Proteine (%)"),
+    kw("grundumsatz_kcal", "Grundumsatz (kcal)", "1"),
+    kw("bio_alter", "Biologisches Alter", "1"),
+    NOTIZ,
+  ],
+  title: (r) => r.gewicht_kg != null ? `${fmtNum(r.gewicht_kg, 2)} kg` : "Messung",
+  sub: (r) => [r.koerperfett_pct != null && `${fmtNum(r.koerperfett_pct, 1)} % Fett`, r.muskelmasse_kg != null && `${fmtNum(r.muskelmasse_kg, 1)} kg Muskeln`, r.wasser_pct != null && `${fmtNum(r.wasser_pct, 1)} % Wasser`].filter(Boolean).join(" · "),
+};
+
+const VIEW_TABLES = { training: ["bouldern", "kraft", "laufen", "rad"], ernaehrung: ["ernaehrung"], zyklus: ["zyklus"], befinden: ["koerper", "befinden"] };
+// Tabellen, die per SQL-Datei erst noch angelegt werden müssen
+const missing = {};
 const EMPTY_TEXT = {
   bouldern: "Noch keine Boulder-Session eingetragen.",
   kraft: "Noch kein Krafttraining eingetragen.",
@@ -146,6 +174,7 @@ const EMPTY_TEXT = {
   ernaehrung: "Heute noch nichts gegessen eingetragen.",
   zyklus: "Trag den Beginn deiner letzten Periode ein, dann siehst du auf „Heute“ deinen Zyklustag.",
   befinden: "Hier trägst du ein, wenn du krank oder verletzt bist oder wie es dir geht.",
+  koerper: "Noch keine Messung eingetragen. Schick mir einfach einen Screenshot deiner Waage, ich sortiere dir die Werte.",
 };
 
 // ---------- Verbindung ----------
@@ -240,7 +269,9 @@ async function load(table) {
   const t = TABLES[table];
   const { data, error } = await db.from(table).select("*")
     .order(t.dateField, { ascending: false }).order("created_at", { ascending: false }).limit(3000);
+  if (error && t.optional) { missing[table] = true; console.warn(table, error.message); cache[table] = []; return []; }
   if (error) { toast("Laden hat nicht geklappt."); console.error(error); return cache[table] || []; }
+  missing[table] = false;
   cache[table] = data;
   return data;
 }
@@ -276,7 +307,8 @@ async function refreshAll() {
 
 function renderAll() {
   renderTraining();
-  ["ernaehrung", "zyklus", "befinden"].forEach((v) => renderList($(`[data-list="${v}"]`), v));
+  ["ernaehrung", "zyklus"].forEach((v) => renderList($(`[data-list="${v}"]`), v));
+  ["koerper", "befinden"].forEach((t) => renderList($(`[data-list="${t}"]`), "befinden", t));
   renderToday();
   renderCharts();
   renderZyklus();
@@ -285,7 +317,7 @@ function renderAll() {
 function renderCharts() {
   if (!window.TBCharts) return;
   const view = (location.hash.replace("#", "") || "heute");
-  try { window.TBCharts.render(cache, view, sport); } catch (e) { console.error("Grafik", e); }
+  try { window.TBCharts.render({ ...cache, _missing: missing }, view, sport); } catch (e) { console.error("Grafik", e); }
 }
 window.addEventListener("hashchange", () => setTimeout(renderCharts, 0));
 
@@ -319,6 +351,11 @@ function itemsFor(table) {
 }
 
 function renderList(el, view, table = VIEW_TABLES[view][0]) {
+  if (!el) return;
+  if (missing[table]) {
+    el.innerHTML = `<div class="glass empty"><p class="muted">Dafür fehlt noch die Tabelle in Supabase. Führ einmal die Datei <b>2026-11-24-koerperwerte.sql</b> im SQL Editor aus, dann kannst du hier eintragen.</p></div>`;
+    return;
+  }
   const items = itemsFor(table);
   if (!items.length) {
     el.innerHTML = `<div class="glass empty"><p class="muted">${EMPTY_TEXT[table]}</p><button type="button" class="btn small-btn" data-add="${table}">+ Eintragen</button></div>`;
@@ -412,19 +449,9 @@ function renderToday() {
 
   renderEssenHeute();
 
-  const c = cycleInfo();
-  $('[data-sum="zyklus"]').textContent = c ? `Tag ${c.day} · ${c.phase}` : "Noch nichts eingetragen";
-  if (c) {
-    const frac = Math.min(1, (c.day - 1) / c.len);
-    const track = $("#cycle-track");
-    const p = track.getPointAtLength(track.getTotalLength() * frac);
-    $("#cycle-dot").setAttribute("cx", p.x);
-    $("#cycle-dot").setAttribute("cy", p.y);
-    $("#cycle-done").setAttribute("stroke-dasharray", `${frac * 100} 100`);
-    const tip = $("#cycle-tip");
-    tip.hidden = !PHASE_TIPP[c.phase];
-    tip.textContent = PHASE_TIPP[c.phase] || "";
-    $("#cycle-text").textContent = `${c.overdue ? "Periode lässt auf sich warten." : c.next ? `Nächste Periode in etwa ${c.next} ${c.next === 1 ? "Tag" : "Tagen"}.` : ""}`;
+  // Zyklus-Uhr als Punktekranz (charts.js)
+  if (window.TBCharts && window.TBCharts.heuteUhr) {
+    try { window.TBCharts.heuteUhr($("[data-zuhr]"), cache); } catch (e) { console.error("Zyklus-Uhr", e); }
   }
 
   if (window.TBSupp) window.TBSupp.render($("[data-supp]"), db, cache);
@@ -610,6 +637,7 @@ function openForm(table, rows = null, preset = null) {
     const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
     return `<details class="more"${open ? " open" : ""}><summary>Kohlenhydrate, Fett, Ballaststoffe</summary><div class="more-grid">${extras.map((x) => fieldHTML(x, base[x.name])).join("")}</div></details>`;
   }).join("");
+  if (table === "koerper") html = `<p class="muted small form-hint">Am vergleichbarsten: einmal pro Woche, morgens nach der Toilette, vor Essen und Trinken, barfuß. Leere Felder einfach frei lassen.</p>` + html;
   if (rows) html += `<button type="button" class="btn danger" id="delete-entry">Eintrag löschen</button>`;
   $("#entry-fields").innerHTML = html;
   if (table === "ernaehrung" && window.TBFood) window.TBFood.attach($("#entry-form"), db);
@@ -617,13 +645,13 @@ function openForm(table, rows = null, preset = null) {
   if (!dlg.open) dlg.showModal();
 }
 
-function openPicker() {
+function openPicker(tables = Object.keys(TABLES)) {
   editing = null;
   $("#entry-title").textContent = "Was möchtest du eintragen?";
   $("#entry-fields").innerHTML = "";
   $("#entry-msg").textContent = "";
   const p = $("#entry-picker");
-  p.innerHTML = Object.entries(TABLES).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${t.label}</button>`).join("");
+  p.innerHTML = tables.map((k) => [k, TABLES[k]]).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${t.label}</button>`).join("");
   p.hidden = false;
   $(".sheet-actions").hidden = true;
   dlg.showModal();
@@ -782,6 +810,7 @@ $("#fab").addEventListener("click", () => {
   const view = (location.hash.replace("#", "") || "heute");
   if (view === "training") return openForm(sport);
   if (view === "ernaehrung" && window.TBCharts && window.TBCharts.foodDay && window.TBCharts.foodDay()) return openFormAm("ernaehrung", window.TBCharts.foodDay());
+  if (VIEW_TABLES[view] && VIEW_TABLES[view].length > 1) return openPicker(VIEW_TABLES[view]);
   if (VIEW_TABLES[view]) return openForm(VIEW_TABLES[view][0]);
   openPicker();
 });
