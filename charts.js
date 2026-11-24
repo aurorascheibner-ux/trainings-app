@@ -16,6 +16,16 @@
   // Sportarten nehmen die Farben des gewählten Farbkonzepts
   const SPORTC = { Bouldern: "var(--c4)", Kraft: "var(--c1)", Laufen: "var(--c2)", Rad: "var(--c3)" };
   const SETC = ["var(--c1)", "var(--c4)", "var(--c2)", "var(--c3)", "var(--text)"];
+  // Symbole für die Nährwerte (Essen, nach Zweck sortiert)
+  const NICO = {
+    kcal: '<path d="M12 3c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z"/>',
+    eiweiss: '<path d="M12 3c3.5 0 6 4.5 6 9a6 6 0 0 1-12 0c0-4.5 2.5-9 6-9z"/>',
+    kh: '<path d="M12 21V8M12 8c-2-1-3-3-3-5 2 0 3 1 3 3M12 8c2-1 3-3 3-5-2 0-3 1-3 3M12 13c-2-1-3-3-3-5M12 13c2-1 3-3 3-5M12 18c-2-1-3-3-3-5M12 18c2-1 3-3 3-5"/>',
+    zucker: '<path d="M5 9l7-4 7 4v7l-7 4-7-4z"/><path d="M5 9l7 4 7-4M12 13v7"/>',
+    fett: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    ges: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9 14h6"/>',
+    ballast: '<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19l8-8"/>',
+  };
   const BANDC = { Periode: "#d9728f", Follikelphase: "#5fb88f", Eisprung: "#e0c04f", Lutealphase: "#9b8be0" };
   const SICK = "#ff5a5a";
   const PHASES = ["Periode", "Follikelphase", "Eisprung", "Lutealphase"];
@@ -585,21 +595,32 @@
     const rest = base.kcal - kc;
     body.appendChild(E("div", "c-big" + (rest < 0 ? " over" : ""), rest >= 0 ? fnum(rest) + (isToday ? " kcal übrig" : " kcal unter Ziel") : fnum(-rest) + " kcal drüber"));
     body.appendChild(E("p", "c-sub", "Ziel " + (isToday ? "heute " : "") + fnum(base.kcal) + " kcal · gegessen " + fnum(kc) + " kcal"));
-    const bar = (lbl, have, goal, unit, kind) => {
-      const r = E("div", "c-bar" + (kind === "max" && have > goal ? " over" : "")), t = E("div", "t");
-      t.append(E("b", "", lbl), E("span", "", fnum(have) + (kind === "max" ? " von max. " : kind === "min" ? " von mind. " : " von ") + fnum(goal) + " " + unit));
-      const tr = E("div", "c-track"), f = E("i"); f.style.width = Math.min(100, (have / goal) * 100) + "%"; tr.appendChild(f); r.append(t, tr); return r;
+    // Nach Zweck sortiert, mit Symbolen (Auroras Wahl 24.11.: Aufbauen / Energie / Begrenzen)
+    const row = (ico, col, lbl, have, goal, unit, kind, sub) => {
+      const over = kind === "max" && have > goal;
+      const r = E("div", "n-row" + (over ? " over" : "") + (sub ? " sub" : "")); r.style.setProperty("--nc", col);
+      if (!sub) r.innerHTML = `<span class="n-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${NICO[ico]}</svg></span>`;
+      const t = E("div", "n-t"), top = E("div", "n-top");
+      const rest = goal - have;
+      const txt = kind === "max" ? fnum(have) + " von max. " + fnum(goal) + " " + unit : fnum(have) + " / " + fnum(goal) + " " + unit + (isToday && rest > 0 && kind === "min" ? " · noch " + fnum(Math.round(rest)) : "");
+      top.append(E("b", "", lbl), E("span", "", txt));
+      const tr = E("div", "n-track"), f = E("i"); f.style.width = Math.min(100, goal ? (have / goal) * 100 : 0) + "%"; tr.appendChild(f);
+      t.append(top, tr); r.appendChild(t); return r;
     };
+    const grp = (name) => E("div", "n-grp", name);
     const fett = sum("fett_g"), ges = sum("fett_ges_g");
     body.append(
-      bar("Energie", kc, base.kcal, "kcal"),
-      bar("Eiweiß", pr, base.p, "g"),
-      bar("Kohlenhydrate", sum("kh_g"), base.kh, "g"),
-      bar("· davon Zucker", sum("zucker_g"), sugMax, "g", "max"),
-      bar("Fett", fett, base.f, "g"),
-      bar("· gesättigt", ges, satMax, "g", "max"),
-      bar("· ungesättigt", Math.max(0, Math.round((fett - ges) * 10) / 10), base.f - satMax, "g"),
-      bar("Ballaststoffe", sum("ballast_g"), fibMin, "g", "min"),
+      grp("Aufbauen"),
+      row("eiweiss", "var(--c2)", "Eiweiß", pr, base.p, "g", "min"),
+      row("ballast", "var(--c4)", "Ballaststoffe", sum("ballast_g"), fibMin, "g", "min"),
+      grp("Energie"),
+      row("kcal", "var(--c1)", "Energie", kc, base.kcal, "kcal"),
+      row("kh", "color-mix(in srgb, var(--c1) 45%, #d9a23a)", "Kohlenhydrate", sum("kh_g"), base.kh, "g"),
+      row("fett", "var(--c3)", "Fett", fett, base.f, "g"),
+      row("", "var(--c3)", "davon ungesättigt", Math.max(0, Math.round((fett - ges) * 10) / 10), base.f - satMax, "g", "", true),
+      grp("Begrenzen"),
+      row("zucker", "var(--muted)", "Zucker", sum("zucker_g"), sugMax, "g", "max"),
+      row("ges", "var(--muted)", "Gesättigte Fette", ges, satMax, "g", "max"),
     );
     const ok = Math.max(0, base.kcal - kc), op = Math.max(0, base.p - pr);
     const ohne = eat.length && eat.some((r) => r.kcal != null && r.kh_g == null) ? " Bei manchen Einträgen fehlen Kohlenhydrate und Fett, die zählen dort noch nicht mit." : "";

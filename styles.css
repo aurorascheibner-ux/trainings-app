@@ -795,3 +795,20 @@ html[data-phase] { --fx-col: color-mix(in srgb, var(--phase) 70%, var(--tint)); 
 @media (prefers-reduced-motion: reduce) {
   .bgfx i { transform: none !important; transition: none; }
 }
+
+/* ---------- Essen: Nährwerte nach Zweck mit Symbolen (Wunsch 24.11.2026) ---------- */
+.n-grp { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+.n-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.n-row.sub { margin: -2px 0 8px 44px; }
+.n-row.sub .n-top b { font-weight: 500; color: var(--muted); font-size: .8rem; }
+.n-row.sub .n-track { height: 5px; opacity: .7; }
+.n-ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--nc) 16%, transparent); color: var(--nc); }
+.n-ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.n-t { flex: 1; min-width: 0; }
+.n-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .9rem; }
+.n-top b { font-weight: 600; }
+.n-top span { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+.n-track { height: 7px; border-radius: 9px; background: rgb(var(--w) / .1); margin-top: 5px; overflow: hidden; }
+.n-track i { display: block; height: 100%; border-radius: 9px; background: var(--nc); }
+.n-row.over { --nc: #d0503a; }
+.n-row.over .n-top span { color: #d0503a; font-weight: 700; }
