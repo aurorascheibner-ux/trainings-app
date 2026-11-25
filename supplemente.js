@@ -97,9 +97,9 @@
     const paused = plan.filter((s) => !s.aktiv);
     const alle = due.length && done >= due.length;
     const status = !due.length ? `<span class="supp-st ok" title="Heute nichts fällig">✓</span>` : alle ? `<span class="supp-st ok" title="Alles genommen">✓</span>` : `<span class="supp-st">${done}/${due.length}</span>`;
-    if (!auf && !edit) return `<div class="glass c-card supp zu"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="false"><h3 class="c-title">Supplemente</h3>${status}<span class="supp-chev">⌄</span></button></div>`;
+    if (!auf && !edit) return `<div class="glass c-card supp zu"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="false"><h3 class="c-title">Supplemente</h3>${status}${CHEV("down supp-chev")}</button></div>`;
     return `<div class="glass c-card supp">
-      <div class="supp-head"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="true"><h3 class="c-title">Supplemente</h3>${status}<span class="supp-chev up">⌄</span></button><button type="button" class="btn ghost small-btn" data-supp-edit>${edit ? "Fertig" : "Bearbeiten"}</button></div>
+      <div class="supp-head"><button type="button" class="supp-toggle" data-supp-auf aria-expanded="true"><h3 class="c-title">Supplemente</h3>${status}${CHEV("down supp-chev")}</button><button type="button" class="btn ghost small-btn" data-supp-edit>${edit ? "Fertig" : "Bearbeiten"}</button></div>
       ${gruppen}
       ${edit ? addForm() : `<div class="supp-week">${woche.map((w) => `<span title="${w.d}"><i style="--q:${w.q == null ? 0 : w.q}" class="${w.q == null ? "none" : ""}"></i>${w.wd}</span>`).join("")}</div>
       ${paused.length ? `<p class="c-hint">Pausiert: ${esc(paused.map((s) => s.name).join(", "))}</p>` : ""}`}

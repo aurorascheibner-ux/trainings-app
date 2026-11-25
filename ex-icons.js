@@ -26,7 +26,8 @@
   const GEN = BAR(5, 27, 16) + `<rect class="ex-g-fill" x="7" y="11" width="3" height="10" rx="1"/><rect class="ex-g-fill" x="22" y="11" width="3" height="10" rx="1"/>`;
   // Icons für das Eintragen-Menü
   const PICK = {
-    bouldern: `<path class="ex-g-fill" d="M7 21c-2-5 2-11 8-12 6-1 11 3 10 8-1 6-7 9-12 9-3 0-5-2-6-5z"/><circle cx="16.5" cy="16" r="2.2" class="ex-b-fill"/>`,
+    // kletternde Figur an Griffen: ein Arm hoch, ein Bein hoch angetreten
+    bouldern: `<circle class="ex-g-fill" cx="23" cy="4" r="2.4"/><circle class="ex-g-fill" cx="8" cy="13" r="2.2"/><circle class="ex-g-fill" cx="21" cy="21" r="2.2"/><circle class="ex-g-fill" cx="11" cy="29" r="2.2"/>` + H(15.5, 8.5) + B("17,12", "22,5") + B("15,12", "9,13") + B("16,12", "15,20") + B("15,20", "20,21") + B("15,20", "13,25", "11,28"),
     kraft: GEN,
     laufen: H(19, 5) + B("18,9", "15,17") + B("17,11", "12,13", "9,11") + B("17,11", "21,15", "25,13") + B("15,17", "20,21", "18,28") + B("15,17", "11,22", "6,22"),
     rad: `<circle class="ex-g" cx="8" cy="21" r="5.5"/><circle class="ex-g" cx="24" cy="21" r="5.5"/>` + B("8,21", "13,12", "21,12", "24,21") + B("13,12", "16,21", "21,12") + B("11,9", "15,9") + B("20,9", "22,8"),

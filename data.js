@@ -97,7 +97,7 @@ const TABLES = {
     sub: (r) => [r.dauer_s && fmtDuration(r.dauer_s), r.avg_kmh && `${fmtNum(r.avg_kmh, 1)} km/h`, r.zweck === "alltag" ? "Alltag" : r.zweck === "freizeit" ? "Freizeit" : ""].filter(Boolean).join(" · "),
   },
   ernaehrung: {
-    label: "Essen", dateField: "datum", view: "ernaehrung",
+    label: "Ernährung", dateField: "datum", view: "ernaehrung",
     fields: [
       { name: "datum", label: "Datum", type: "date", required: true },
       { name: "lebensmittel", label: "Was hast du gegessen?", type: "text", required: true, placeholder: "Haferflocken mit Skyr", suggest: "essen" },
@@ -407,8 +407,8 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
     lastDate = it.date;
     return `${head}<button type="button" class="glass entry" data-edit="${table}" data-key="${esc(it.key)}">
       <span class="entry-main"><strong>${esc(it.title)}</strong>${it.sub ? `<span class="muted small">${esc(it.sub)}</span>` : ""}${it.note ? `<span class="note small">${esc(it.note)}</span>` : ""}</span>
-      <span class="chev" aria-hidden="true">›</span></button>`;
-  }).join("") + (cut ? `<button type="button" class="btn ghost more-btn" data-more="${table}">Ältere Einträge (${days.length - 7} Tage) ⌄</button>` : "");
+      ${CHEV()}</button>`;
+  }).join("") + (cut ? `<button type="button" class="fold-row more-btn" data-more="${table}">Ältere Einträge · ${days.length - 7} ${days.length - 7 === 1 ? "Tag" : "Tage"} ${CHEV("down")}</button>` : "");
 }
 const showAll = new Set();
 document.addEventListener("click", (e) => {
@@ -432,6 +432,12 @@ $$(".chip[data-ksub]").forEach((c) => c.addEventListener("click", () => { setKsu
 document.addEventListener("click", (e) => { const t = e.target.closest("[data-goto-ksub]"); if (t) setKsub(t.dataset.gotoKsub); });
 renderKsub();
 
+// Sportarten als Piktogramme (Wunsch 25.11.): der Name steht nur beim gewählten Sport
+$$(".chip[data-sport]").forEach((c) => {
+  const l = c.textContent.trim(); c.setAttribute("aria-label", l); c.title = l;
+  if (window.TBPickIcon) c.innerHTML = window.TBPickIcon(c.dataset.sport) + `<span>${l}</span>`;
+});
+$('.chips[aria-label="Sportart"]')?.classList.add("sport-pick");
 $$(".chip[data-sport]").forEach((c) => c.addEventListener("click", () => {
   sport = c.dataset.sport;
   try { localStorage.setItem("sport", sport); } catch {}
@@ -681,14 +687,14 @@ function openForm(table, rows = null, preset = null) {
   const extras = t.fields.filter((f) => f.extra);
   let html = t.fields.map((f) => {
     // Kraft: Übung + Sätze als Block, beim Neu-Eintragen beliebig viele Übungen auf einmal
-    if (t.sets && f.name === "uebung") return (rows ? "" : `<details class="diktat"${preset ? "" : " open"}><summary>Diktieren oder einfügen</summary>
+    if (t.sets && f.name === "uebung") return (rows ? "" : `<details class="diktat"${preset ? "" : " open"}><summary class="fold-row">Diktieren oder einfügen ${CHEV("down")}</summary>
       <label class="field"><textarea name="diktat_text" rows="4" placeholder="z. B. Bankdrücken 3 mal 55, 9 mal 45, 3 mal 55. Kniebeuge 10 mal 50 …"></textarea></label>
       <button type="button" class="btn ghost small-btn" id="diktat-mic" hidden>🎤 Sprechen</button>
       <button type="button" class="btn small-btn" id="diktat-go">Übernehmen</button><p class="small" data-diktat-msg></p></details>`) + `<div class="uebungen">${preset ? preset.map((p, i) => uebBlockHTML(f, p.u, [0, 1, 2].map(() => ({ gewicht_kg: p.w ?? "" })), i)).join("") : uebBlockHTML(f, base.uebung, rows || [{}, {}, {}], 0)}</div>${rows ? "" : `<button type="button" class="btn ghost small-btn" id="add-ueb">+ Weitere Übung</button>`}`;
     if (!f.extra) return fieldHTML(f, base[f.name]);
     if (f !== extras[0]) return "";
     const open = extras.some((x) => base[x.name] != null && base[x.name] !== "");
-    return `<details class="more"${open ? " open" : ""}><summary>Kohlenhydrate, Fett, Ballaststoffe</summary><div class="more-grid">${extras.map((x) => fieldHTML(x, base[x.name])).join("")}</div></details>`;
+    return `<details class="more"${open ? " open" : ""}><summary class="fold-row">Kohlenhydrate, Fett, Ballaststoffe ${CHEV("down")}</summary><div class="more-grid">${extras.map((x) => fieldHTML(x, base[x.name])).join("")}</div></details>`;
   }).join("");
   if (table === "koerper") html = `<p class="muted small form-hint">Am vergleichbarsten: einmal pro Woche, morgens nach der Toilette, vor Essen und Trinken, barfuß. Leere Felder einfach frei lassen.</p>` + html;
   if (rows) html += `<button type="button" class="btn danger" id="delete-entry">Eintrag löschen</button>`;

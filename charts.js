@@ -104,7 +104,7 @@
     if (pageLeg) items = items.filter(([color, text, op]) => { if (!PAGE_LEG.has(text)) return true; pageLeg.set(text, [color, text, op]); return false; });
     if (!items.length) return;
     const lg = E("div", "c-legend");
-    items.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text)); lg.appendChild(s); });
+    items.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", PN(text))); lg.appendChild(s); });
     el.appendChild(lg);
   }
 
@@ -352,7 +352,7 @@
     const termine = (u) => new Set(rows.filter((r) => r.uebung === u).map((r) => r.datum)).size;
     const selten = ulist.filter((u) => termine(u) < 3);
     let fold = null;
-    if (selten.length) { fold = E("details", "glass c-card k-selten"); const sm = E("summary"); sm.append(E("span", "c-title", "Seltene Übungen"), E("span", "k-cnt", selten.length + " ⌄")); fold.appendChild(sm); fold.appendChild(E("p", "c-note", "Weniger als 3 Termine: " + selten.join(", "))); }
+    if (selten.length) { fold = E("details", "glass c-card k-selten"); const sm = E("summary"); sm.append(E("span", "c-title", "Seltene Übungen"), E("span", "k-cnt", String(selten.length))); sm.insertAdjacentHTML("beforeend", CHEV("down")); fold.appendChild(sm); fold.appendChild(E("p", "c-note", "Weniger als 3 Termine: " + selten.join(", "))); }
     ulist.forEach((u) => {
       const rs = rows.filter((r) => r.uebung === u), sec = rs.some((r) => Number(r.dauer_s) > 0 && !Number(r.wdh)), kg = !sec && rs.some((r) => Number(r.gewicht_kg) > 0);
       if (fold && selten.includes(u)) { const h = E("div", "k-selten-item"); h.appendChild(E("h4", "c-title", u)); if (window.TBExIcon) h.lastChild.insertAdjacentHTML("afterbegin", window.TBExIcon(u)); const b = E("div", "c-body"); h.appendChild(b); fold.appendChild(h); todo.push([b, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]); return; }
@@ -427,9 +427,9 @@
   // ---------- Zyklus ----------
   const PHASE_INFO = {
     Periode: { titel: "Periode", stark: ["Lockeres Bouldern und Technik", "Mobility und Dehnen", "Ruhige, kurze Läufe"], achte: ["Energie ist oft niedriger", "Intensität nach Gefühl wählen", "Genug trinken und eisenreich essen"], essen: "Eisenreich essen (Linsen, Haferflocken, Fleisch) mit Vitamin C dazu. Magnesium am Abend kann bei Krämpfen helfen.", tipp: "Bewegung ja, Druck nein." },
-    Follikelphase: { titel: "Follikelphase", stark: ["Projekte und Maximalversuche (Zeit für 7b)", "Schwere Sätze und neue Bestgewichte", "Intervalle, du erholst dich schneller"], achte: ["Genug essen, damit die Kraft ankommt", "Nicht alles in eine Woche packen"], essen: "Kohlenhydrate rund um harte Einheiten, damit Power da ist.", tipp: "Jetzt die harten Boulder probieren." },
-    Eisprung: { titel: "Rund um den Eisprung", stark: ["Kraft und Power oft am höchsten", "Dynamische Züge und Maximalkraft"], achte: ["Bänder können lockerer sein", "Gründlich aufwärmen, Sprünge kontrolliert landen"], essen: "Normal weiter, Protein über den Tag verteilt.", tipp: "Power ja, aber erst sauber aufwärmen." },
-    Lutealphase: { titel: "Lutealphase", stark: ["Volumen und Ausdauer", "Technik und Wiederholen von Bekanntem", "Lockere Läufe nach Puls"], achte: ["Ruhepuls und Temperatur sind höher, gleiche Pace fühlt sich härter an", "Mehr Pausen, gegen Ende sinkt die Energie oft"], essen: "Der Körper verbraucht etwas mehr: Protein eher am oberen Ende, mehr trinken. Mehr Hunger ist normal.", tipp: "Pace nach Puls statt nach Uhr, Volumen statt Maximalversuche." },
+    Follikelphase: { titel: "Follikel", stark: ["Projekte und Maximalversuche (Zeit für 7b)", "Schwere Sätze und neue Bestgewichte", "Intervalle, du erholst dich schneller"], achte: ["Genug essen, damit die Kraft ankommt", "Nicht alles in eine Woche packen"], essen: "Kohlenhydrate rund um harte Einheiten, damit Power da ist.", tipp: "Jetzt die harten Boulder probieren." },
+    Eisprung: { titel: "Eisprung", stark: ["Kraft und Power oft am höchsten", "Dynamische Züge und Maximalkraft"], achte: ["Bänder können lockerer sein", "Gründlich aufwärmen, Sprünge kontrolliert landen"], essen: "Normal weiter, Protein über den Tag verteilt.", tipp: "Power ja, aber erst sauber aufwärmen." },
+    Lutealphase: { titel: "Luteal", stark: ["Volumen und Ausdauer", "Technik und Wiederholen von Bekanntem", "Lockere Läufe nach Puls"], achte: ["Ruhepuls und Temperatur sind höher, gleiche Pace fühlt sich härter an", "Mehr Pausen, gegen Ende sinkt die Energie oft"], essen: "Der Körper verbraucht etwas mehr: Protein eher am oberen Ende, mehr trinken. Mehr Hunger ist normal.", tipp: "Pace nach Puls statt nach Uhr, Volumen statt Maximalversuche." },
   };
   // ---------- Zyklus: deine Form in dieser Phase (eigene Zahlen) ----------
   function formKarte(parent) {
@@ -516,18 +516,18 @@
     const cyc = C.phasen.filter((p) => p.phase === "Periode" && p.start <= ti).pop();
     const z = zyklusHeute();
     if (z && z.overdue) parent.appendChild(E("p", "glass c-alert", `Deine Periode lässt auf sich warten (Zyklustag ${z.day}). Bis du sie einträgst, läuft hier die Lutealphase weiter.`));
-    const head = E("h3", "section-h", "Training und Essen je Phase"); parent.appendChild(head);
+    const head = E("h3", "section-h", "Training und Ernährung je Phase"); parent.appendChild(head);
     PHASES.forEach((P) => {
       const info = PHASE_INFO[P], on = cur && cur.phase === P;
       const c = E("details", "glass c-phase" + (on ? " on" : ""));
       c.open = on;
       c.style.setProperty("--ph", BANDC[P]);
-      const sm = E("summary"); const h = E("h3", "c-title", info.titel); if (on) h.appendChild(E("span", "c-now", "Jetzt")); sm.appendChild(h); sm.appendChild(E("span", "c-tipp-kurz", info.tipp)); c.appendChild(sm);
+      const sm = E("summary"); const h = E("h3", "c-title", info.titel); if (on) h.appendChild(E("span", "c-now", "Jetzt")); h.insertAdjacentHTML("beforeend", CHEV("down")); sm.appendChild(h); sm.appendChild(E("span", "c-tipp-kurz", info.tipp)); c.appendChild(sm);
       const r = cyc ? C.phasen.find((p) => p.phase === P && p.zyklus_start === cyc.start) : null;
       if (r) { const a = Math.round((pd(r.start) - pd(cyc.start)) / DAY) + 1, e = Math.round((pd(r.ende) - pd(cyc.start)) / DAY) + 1; c.appendChild(E("p", "c-note", "Zyklustag " + a + (e > a ? "–" + e : "") + " · " + fmtD(pd(r.start)) + (e > a ? " bis " + fmtD(pd(r.ende)) : ""))); }
       const list = (lbl, items) => { c.appendChild(E("span", "c-lbl", lbl)); const ul = E("ul"); items.forEach((i) => ul.appendChild(E("li", "", i))); c.appendChild(ul); };
       list("Stark in", info.stark); list("Achte auf", info.achte);
-      c.appendChild(E("span", "c-lbl", "Essen")); c.appendChild(E("p", "c-text", info.essen));
+      c.appendChild(E("span", "c-lbl", "Ernährung")); c.appendChild(E("p", "c-text", info.essen));
       c.appendChild(E("p", "c-tipp", "Tipp: " + info.tipp));
       parent.appendChild(c);
     });
@@ -545,9 +545,9 @@
     // bester Wert je Spalte (Sessions: pro Phase-Durchgang, damit kurze Phasen fair sind)
     const best = [0, 1, 2, 3].map((j) => { const vs = rows.map((r) => r[5][j]).filter((v) => v != null && v > 0); return vs.length > 1 ? Math.max(...vs) : null; });
     const tbl = E("table", "c-table");
-    const th = E("tr"); ["Phase", "Boulder", "Ø Grad", "Ø Kraft", "Lauf m/♥"].forEach((h) => th.appendChild(E("th", "", h)));
+    const th = E("tr"); ["Phase", "Boulder", "Grad", "Kraft", "m/♥"].forEach((h) => th.appendChild(E("th", "", h)));
     tbl.appendChild(th);
-    rows.forEach((r) => { const tr = E("tr"); r.slice(0, 5).forEach((v, i) => { const td = E("td", "", String(v)); if (i === 0) { const dot = E("i"); dot.style.background = BANDC[v]; td.prepend(dot); } else if (best[i - 1] != null && r[5][i - 1] === best[i - 1]) td.className = "c-best"; tr.appendChild(td); }); tbl.appendChild(tr); });
+    rows.forEach((r) => { const tr = E("tr"); r.slice(0, 5).forEach((v, i) => { const td = E("td", "", i === 0 ? PN(v) : String(v)); if (i === 0) { const dot = E("i"); dot.style.background = BANDC[v]; td.prepend(dot); } else if (best[i - 1] != null && r[5][i - 1] === best[i - 1]) td.className = "c-best"; tr.appendChild(td); }); tbl.appendChild(tr); });
     const wrap = E("div", "c-scroll"); wrap.appendChild(tbl); body.appendChild(wrap);
   }
 
@@ -563,10 +563,10 @@
     // Gerechnet wurde mit 74 kg; pro kg mehr oder weniger etwa 15 kcal (gedeckelt auf ±150)
     const w = letzteWaage();
     if (w) base.kcal += Math.max(-150, Math.min(150, Math.round((15 * (Number(w.gewicht_kg) - 74)) / 10) * 10));
-    let why = trained ? "Trainingstag" : ti === iso(todayUTC()) ? "Ruhetag, wird zum Trainingstag, sobald du Training einträgst" : "Ruhetag";
+    let why = trained ? "Trainingstag" : "Ruhetag";
     if (sick) { Object.assign(base, { kcal: 2400, kh: 310 }); why = "Krank: auf Erhaltung essen, kein Defizit, viel trinken"; }
     else if (cur && cur.phase === "Periode") { base.kcal = trained ? 2500 : 2200; base.kh += 50; why += " · Periode: auf Erhaltung"; }
-    else if (cur && cur.phase === "Lutealphase") { base.kcal += 150; base.kh += 25; why += " · Lutealphase: +150 kcal"; }
+    else if (cur && cur.phase === "Lutealphase") { base.kcal += 150; base.kh += 25; why += " · Luteal: +150 kcal"; }
     return { base, why };
   }
   const tagSumme = (ti) => {
@@ -596,7 +596,7 @@
     const body = card(parent, isToday ? "Heutiges Ziel" : tagName(ti) === "Gestern" ? "Ziel gestern" : "Ziel am " + tagName(ti), why);
     // Tage blättern
     const nav = E("div", "f-nav");
-    const prev = E("button", "icon-btn f-prev", "‹"), next = E("button", "icon-btn f-next", "›"), lbl = E("span", "f-day", tagName(ti));
+    const prev = E("button", "icon-btn nav-rund f-prev"), next = E("button", "icon-btn nav-rund f-next"), lbl = E("span", "f-day", tagName(ti)); prev.innerHTML = CHEV("left"); next.innerHTML = CHEV(); prev.setAttribute("aria-label", "Tag davor"); next.setAttribute("aria-label", "Tag danach");
     prev.type = next.type = "button"; prev.setAttribute("aria-label", "Tag davor"); next.setAttribute("aria-label", "Tag danach");
     next.disabled = isToday;
     prev.addEventListener("click", () => { foodDay = iso(+pd(ti) - DAY); rerender(); });
@@ -639,7 +639,7 @@
     if (isToday && (ohne || (eat.length && !ok && !op))) body.appendChild(E("p", "c-hint", (eat.length && !ok && !op ? "Ziel für heute erreicht ✓" : "") + ohne));
     else {
       if (!eat.length || ohne) body.appendChild(E("p", "c-hint", (eat.length ? "" : "An diesem Tag ist nichts eingetragen.") + ohne));
-      const add = E("button", "btn small-btn", "+ Essen für " + (tagName(ti) === "Gestern" ? "gestern" : tagName(ti)) + " nachtragen"); add.type = "button";
+      const add = E("button", "btn small-btn wide-btn", isToday ? "Ernährung eintragen" : "Ernährung für " + (tagName(ti) === "Gestern" ? "gestern" : tagName(ti)) + " eintragen"); add.type = "button";
       add.addEventListener("click", () => window.dispatchEvent(new CustomEvent("tb-add", { detail: { table: "ernaehrung", datum: ti } })));
       body.appendChild(add);
     }
@@ -842,7 +842,7 @@
     const body = card(box, "Letzte Messung");
     const ph = phaseOn(last.datum);
     const meta = E("p", "k-meta", pd(last.datum).toLocaleDateString("de-DE", { day: "numeric", month: "long", timeZone: "UTC" }));
-    if (ph) { const i = E("i"); i.style.background = BANDC[ph]; meta.append(" · ", i, " " + ph); }
+    if (ph) { const i = E("i"); i.style.background = BANDC[ph]; meta.append(" · ", i, " " + PN(ph)); }
     body.appendChild(meta);
     const big = E("div", "k-big3");
     HAUPT.map((k) => KW.find((m) => m.k === k)).forEach((m) => {
@@ -872,7 +872,7 @@
     // 3) Alle Werte, eingeklappt
     const all = E("details", "glass c-card k-all"); all.open = kwAll;
     all.addEventListener("toggle", () => { kwAll = all.open; });
-    const sm = E("summary"); sm.append(E("span", "c-title", "Alle Werte"), E("span", "k-cnt", KW.filter((x) => lastOf(x.k)).length + " Werte ⌄")); all.appendChild(sm);
+    const sm = E("summary"); sm.append(E("span", "c-title", "Alle Werte"), E("span", "k-cnt", KW.filter((x) => lastOf(x.k)).length + " Werte")); sm.insertAdjacentHTML("beforeend", CHEV("down")); all.appendChild(sm);
     KW.filter((x) => lastOf(x.k)).forEach((x) => {
       const d = delta(x), row = E("button", "k-row" + (x.k === kwSel ? " on" : "")); row.type = "button";
       row.innerHTML = `<span class="k-rn">${x.l}</span>${spark(series(x.k).map((r) => Number(r[x.k])), "var(--muted)")}<span class="k-rv">${kfmt(lastOf(x.k)[x.k], x.d)}${x.u && x.u !== "Jahre" ? " " + x.u : ""}</span><span class="k-d${d.cls}">${d.txt}</span>`;
@@ -979,22 +979,22 @@
     const avgL = gaps.length ? Math.round(gaps.reduce((x, y) => x + y, 0) / gaps.length) : 26;
     const dmy = (t) => new Date(t).toLocaleDateString("de-DE", { day: "numeric", month: "short", timeZone: "UTC" });
     const per = z.overdue
-      ? `<b>überfällig</b><span>erwartet war ca. ${dmy(+pd(cyc.start) + avgL * DAY)}</span>`
-      : z.next != null ? `<b>in ca. ${tage(z.next)}</b><span>um den ${dmy(+t0 + z.next * DAY)}</span>` : "";
+      ? `<b>überfällig</b><span>erwartet war etwa ${dmy(+pd(cyc.start) + avgL * DAY)}</span>`
+      : z.next != null ? `<b>in etwa ${tage(z.next)}</b><span>um den ${dmy(+t0 + z.next * DAY)}</span>` : "";
     const sick = (C.befinden || []).find((r) => r.status === "krank" && r.datum_von <= ti && (!r.datum_bis || ti <= r.datum_bis));
     const tp = UHR_TIPP[z.phase].slice();
     if (sick) { tp[0] = "Pause, erst gesund werden"; tp[1] = "Auf Erhaltung, viel trinken"; }
     const center = z.overdue ? `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="zu-c1">${KURZ[z.phase]}</text><text x="${cx}" y="${cy + 17}" text-anchor="middle" class="zu-c2">Tag ${z.day}</text>`
-      : `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="zu-c1">${KURZ[z.phase]}</text><text x="${cx}" y="${cy + 19}" text-anchor="middle" class="zu-c2">Tag ${z.day} von ca. ${avgL}</text>`;
+      : `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="zu-c1">${KURZ[z.phase]}</text><text x="${cx}" y="${cy + 19}" text-anchor="middle" class="zu-c2">Tag ${z.day} von etwa ${avgL}</text>`;
     el.innerHTML = `<div class="zu">
       <svg class="zu-ring" viewBox="0 0 200 200" role="img" aria-label="Zyklustag ${z.day}, ${z.phase}">${dots}${center}</svg>
       <div class="zu-side">
-        <div><span class="zu-k">Phase</span><h2 data-sum="zyklus">${z.phase}</h2></div>
+        <div><span class="zu-k">Phase</span><h2 data-sum="zyklus">${PN(z.phase)}</h2></div>
         ${ovTxt ? `<div><span class="zu-k">Eisprung</span><b>${ovTxt}</b></div>` : ""}
         ${per ? `<div><span class="zu-k">Periode</span>${per}</div>` : ""}
       <button type="button" class="zu-bulb${uhrTipps ? " on" : ""}" aria-label="Tipps für heute" aria-expanded="${uhrTipps}">${BULB}</button>
       </div></div>
-      <div class="zu-tips"${uhrTipps ? "" : " hidden"}>${[["Training", tp[0]], ["Essen", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div>`;
+      <div class="zu-tips"${uhrTipps ? "" : " hidden"}>${[["Training", tp[0]], ["Ernährung", tp[1]], ["Körper", tp[2]]].map(([k, v]) => `<div><span class="zu-k">${k}</span><span>${v}</span></div>`).join("")}</div>`;
     // Die Karte ist ein Link zur Zyklus-Seite: die Glühbirne soll nicht dorthin springen
     const bb = el.querySelector(".zu-bulb");
     if (bb) bb.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); uhrTipps = !uhrTipps; bb.classList.toggle("on", uhrTipps); bb.setAttribute("aria-expanded", uhrTipps); el.querySelector(".zu-tips").hidden = !uhrTipps; });

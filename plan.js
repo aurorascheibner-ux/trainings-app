@@ -67,8 +67,8 @@
   function zyklusHalt(cache) {
     const z = window.TBCharts && window.TBCharts.zyklusHeute(cache);
     if (!z || z.overdue) return { hold: false, text: "" };
-    if (z.phase === "Follikelphase" || z.phase === "Eisprung") return { hold: false, text: `${z.phase}: guter Moment zum Steigern.` };
-    return { hold: true, text: `${z.phase}: Gewicht halten und sauber trainieren, keine Steigerung.` };
+    if (z.phase === "Follikelphase" || z.phase === "Eisprung") return { hold: false, text: `${PN(z.phase)}: guter Moment zum Steigern.` };
+    return { hold: true, text: `${PN(z.phase)}: Gewicht halten und sauber trainieren, keine Steigerung.` };
   }
   function krank(cache) {
     const t = todayISO();
@@ -104,7 +104,7 @@
       ${sick ? `<p class="p-warn">Du hast gerade „${esc(sick.status)}“ eingetragen: nur leicht trainieren oder Pause.</p>` : ""}
       ${z.text ? `<p class="c-note">${esc(z.text)}</p>` : ""}
       ${items.map((i) => i.html).join("")}
-      <button type="button" class="btn small-btn p-start">Training eintragen</button>
+      <button type="button" class="btn small-btn p-start wide-btn">Training eintragen</button>
       <details class="z-why"><summary>ⓘ Was heißt „↑ 5 kg mehr“?</summary><p>Du hast beim letzten Mal in allen Sätzen die obere Zahl geschafft. Deshalb kommt jetzt das nächste Gewicht dran und du fängst wieder unten im Wiederholungsbereich an.</p></details>`);
     c.querySelector(".p-start").addEventListener("click", () => {
       window.dispatchEvent(new CustomEvent("tb-plan", { detail: items.map((i) => ({ u: i.ex.u, w: i.g.w })) }));
@@ -133,7 +133,7 @@
     const l = (cache.laufen || []).filter((r) => r.datum >= wk).length;
     const bo = new Set((cache.bouldern || []).filter((r) => r.datum >= wk).map((r) => r.datum)).size;
     const c = card(parent, "Dein Plan diese Woche");
-    c.querySelector(".c-title").insertAdjacentHTML("beforeend", ` <span class="chev" aria-hidden="true">›</span>`);
+    c.querySelector(".c-title").insertAdjacentHTML("beforeend", " " + CHEV());
     c.insertAdjacentHTML("beforeend", `
       <div class="p-week">Bouldern ${dots(Math.min(bo, BOULDER_PRO_WOCHE), BOULDER_PRO_WOCHE)} <span>${bo} von ${BOULDER_PRO_WOCHE}${bo > BOULDER_PRO_WOCHE ? " +" + (bo - BOULDER_PRO_WOCHE) : ""}</span></div>
       <div class="p-week">Kraft ${dots(Math.min(k, KRAFT_PRO_WOCHE), KRAFT_PRO_WOCHE)} <span>${k} von ${KRAFT_PRO_WOCHE}</span></div>
