@@ -189,3 +189,30 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(set); } }, { passive: true });
   set();
 })();
+
+// ⓘ einheitlich (25.11.): runder i-Knopf neben dem Kartentitel, die Erklärung klappt direkt darunter auf
+(() => {
+  function infoize() {
+    document.querySelectorAll("details.z-why:not([data-i]), details.k-why:not([data-i])").forEach((d) => {
+      d.dataset.i = "1";
+      const card = d.closest(".glass"), title = card && card.querySelector(".c-title"), sum = d.querySelector("summary");
+      if (!title || !sum) return;
+      const label = sum.textContent.replace("ⓘ", "").trim();
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "i-btn"; b.textContent = "i";
+      b.setAttribute("aria-label", label); b.setAttribute("aria-expanded", String(d.open)); b.classList.toggle("on", d.open);
+      b._d = d;
+      sum.hidden = true;
+      const q = document.createElement("p"); q.className = "i-q"; q.textContent = label; sum.after(q);
+      d.classList.add("i-box");
+      title.appendChild(b);
+      title.after(d);
+    });
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".i-btn"); if (!b || !b._d) return;
+    b._d.open = !b._d.open; b.classList.toggle("on", b._d.open); b.setAttribute("aria-expanded", String(b._d.open));
+  });
+  new MutationObserver(infoize).observe(document.body, { childList: true, subtree: true });
+  infoize();
+})();

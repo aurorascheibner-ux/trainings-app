@@ -18,6 +18,10 @@
   <link rel="stylesheet" href="designs.css">
   <link rel="stylesheet" href="designs-neu.css">
   <script>
+    // Ein Pfeil für alle Stellen (Einheitlichkeit 25.11.): CHEV() zeigt „geht weiter“, CHEV("down") klappt auf und dreht sich beim Öffnen um
+    window.CHEV = function (k) { return '<svg class="chv' + (k ? " " + k : "") + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'; };
+    // Kurze Phasennamen in der Anzeige; intern bleiben die langen Namen
+    window.PN = function (p) { return { Follikelphase: "Follikel", Lutealphase: "Luteal" }[p] || p; };
     // Design und Farbe vor dem ersten Zeichnen setzen (Design steckt im Namen der Farbe, z. B. "papier-salbei")
     window.TB_FONTS = {glas:"Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700",papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",stein:"DM+Serif+Display&family=Manrope:wght@400;500;600;700",tinte:"Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500",bento:"Bricolage+Grotesque:opsz,wght@12..96,400..800",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Syne:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600",kreide:"Archivo:wdth,wght@100..125,400..800",kaugummi:"Fredoka:wght@400..700&family=Nunito:wght@400;600;700",klartext:"Atkinson+Hyperlegible:wght@400;700"};
     (function(){var h=document.documentElement,t="moos";try{t=localStorage.getItem("theme")||"moos"}catch(e){}
@@ -158,8 +162,8 @@
   <main id="views">
     <!-- Heute -->
     <section class="view" data-view="heute">
-      <a class="glass today-food" href="#ernaehrung" data-today="essen" aria-label="Zum Essen">
-        <p class="t-label"><svg class="ico"><use href="#i-ernaehrung"/></svg>Essen heute</p>
+      <a class="glass today-food" href="#ernaehrung" data-today="essen" aria-label="Zur Ernährung">
+        <h3 class="c-title t-head">Ernährung heute <svg class="chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></h3>
         <div class="tf-row">
           <div class="tf-main"><span class="tf-num" data-tf="num">–</span><span class="tf-unit" data-tf="unit">kcal übrig</span><span class="tf-sub" data-tf="sub"></span></div>
           <svg class="tf-ring tri" viewBox="0 0 120 120" aria-hidden="true">
@@ -185,7 +189,7 @@
         </a>
       </div>
       <a class="glass hero" href="#zyklus" aria-label="Zum Zyklus">
-        <p class="eyebrow">Mein Zyklus <span class="chev" aria-hidden="true">›</span></p>
+        <h3 class="c-title t-head">Mein Zyklus <svg class="chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></h3>
         <div data-zuhr><h2 data-sum="zyklus">Noch nichts eingetragen</h2>
           <p class="muted small">Sobald du deinen Zyklus einträgst, siehst du hier, wo du gerade stehst.</p></div>
       </a>
@@ -223,7 +227,7 @@
       </div>
       <div data-ksub-box="koerper">
         <div class="charts" data-charts="befinden"></div>
-        <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
+        <details class="fold"><summary class="fold-row">Deine Messungen <svg class="chv down" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></summary>
         <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
       </div>
       <div data-ksub-box="befinden" hidden>
@@ -238,7 +242,7 @@
   <nav class="tabbar" aria-label="Bereiche">
     <a href="#heute" data-tab="heute"><svg class="ico"><use href="#i-heute"/></svg>Heute</a>
     <a href="#training" data-tab="training"><svg class="ico"><use href="#i-training"/></svg>Training</a>
-    <a href="#ernaehrung" data-tab="ernaehrung"><svg class="ico"><use href="#i-ernaehrung"/></svg>Essen</a>
+    <a href="#ernaehrung" data-tab="ernaehrung"><svg class="ico"><use href="#i-ernaehrung"/></svg>Ernährung</a>
     <a href="#zyklus" data-tab="zyklus"><svg class="ico"><use href="#i-zyklus"/></svg>Zyklus</a>
     <a href="#befinden" data-tab="befinden"><svg class="ico"><use href="#i-befinden"/></svg>Körper</a>
   </nav>

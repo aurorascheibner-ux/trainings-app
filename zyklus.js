@@ -13,7 +13,7 @@
   const fmt = (s, o = { day: "numeric", month: "short" }) => pd(s).toLocaleDateString("de-DE", { ...o, ...(pd(s).getUTCFullYear() !== new Date().getFullYear() && { year: "numeric" }), timeZone: "UTC" });
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const BANDC = { Periode: "#d9728f", Follikelphase: "#5fb88f", Eisprung: "#e0c04f", Lutealphase: "#9b8be0" };
-  const KURZ = { Periode: "Periode", Follikelphase: "Follikelphase", Eisprung: "Eisprung", Lutealphase: "Lutealphase" };
+  const KURZ = { Periode: "Periode", Follikelphase: "Follikel", Eisprung: "Eisprung", Lutealphase: "Luteal" };
 
   // Was man pro Tag antippen kann. Blutung: eine Auswahl, sonst beliebig viele.
   const BLUTUNG = ["Keine", "Schmierblutung", "Leicht", "Mittel", "Stark"];
@@ -74,7 +74,7 @@
     return el(`<div class="glass z-ring-card">
       ${window.TBCharts.uhrSvg ? window.TBCharts.uhrSvg(ctx.cache) : ""}
       <p class="z-r-sub">${esc(sub)}</p>
-      <div class="z-legend">${Object.keys(BANDC).map((k) => `<span><i style="background:${BANDC[k]}"></i>${k}</span>`).join("")}</div>
+      <div class="z-legend">${Object.keys(BANDC).map((k) => `<span><i style="background:${BANDC[k]}"></i>${KURZ[k]}</span>`).join("")}</div>
       ${btn ? `<div class="z-actions">${btn}</div>` : ""}
     </div>`);
   }
@@ -103,9 +103,9 @@
     }
     return el(`<div class="glass z-cal">
       <div class="z-cal-head">
-        <button type="button" class="icon-btn" data-zmonth="-1" aria-label="Voriger Monat">‹</button>
+        <button type="button" class="icon-btn nav-rund" data-zmonth="-1" aria-label="Voriger Monat">${CHEV("left")}</button>
         <h3>${titel}</h3>
-        <button type="button" class="icon-btn" data-zmonth="1" aria-label="Nächster Monat">›</button>
+        <button type="button" class="icon-btn nav-rund" data-zmonth="1" aria-label="Nächster Monat">${CHEV()}</button>
       </div>
       <div class="z-grid z-wd">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((w) => `<span>${w}</span>`).join("")}</div>
       <div class="z-grid">${cells}</div>
@@ -118,7 +118,8 @@
     const t = todayISO(), d = selected, tag = tags.get(d) || {};
     const sym = new Set(tag.symptome || []);
     const p = phaseOn(d);
-    const head = d === t ? "Wie geht's dir heute?" : `Wie ging's dir am ${fmt(d, { weekday: "short", day: "numeric", month: "short" })}?`;
+    // „Wie geht's dir heute?“ gibt es schon bei Befinden, hier heißt die Karte „Symptome“ (Wunsch 25.11.)
+    const head = d === t ? "Symptome heute" : `Symptome am ${fmt(d, { weekday: "short", day: "numeric", month: "short" })}`;
     if (!ctx.tagOk) {
       return el(`<div class="glass z-check"><h3 class="c-title">${head}</h3>
         <p class="c-note">Für den Tages-Check fehlt noch eine Tabelle in Supabase. Sobald sie angelegt ist, kannst du hier antippen.</p></div>`);

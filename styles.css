@@ -854,3 +854,63 @@ html[data-phase] { --fx-col: color-mix(in srgb, var(--phase) 70%, var(--tint)); 
 .b-opt .ico { width: 28px; height: 28px; }
 .b-opt.on { background: var(--hi); color: var(--on-hi); border-color: transparent; }
 .b-opt.on .ico { color: var(--on-hi); }
+
+/* ---------- Einheitlichkeit (25.11.) ---------- */
+/* 1 Pfeil für alles: › geht weiter, ⌄ klappt auf und dreht sich beim Öffnen um */
+.chv { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; transition: transform .2s; }
+.chv.down { transform: rotate(90deg); }
+.chv.left { transform: rotate(180deg); }
+details[open] > summary .chv.down, [aria-expanded="true"] .chv.down { transform: rotate(-90deg); }
+.c-title .chv, .entry .chv, .fold-row .chv, .k-all summary .chv, .k-selten summary .chv { margin-left: auto; }
+.k-all summary .k-cnt, .k-selten summary .k-cnt { margin-left: auto; }
+.k-all summary .k-cnt + .chv, .k-selten summary .k-cnt + .chv { margin-left: 6px; }
+.k-all[open] .k-cnt, .k-selten[open] .k-cnt { visibility: visible; }
+.k-all summary, .k-selten summary { align-items: center; min-height: 32px; }
+details.c-phase summary .c-title::after { content: none; }
+.entry > .chev { display: none; }
+/* 2 „mehr zeigen“ überall gleich: Zeile mit Text links und Pfeil rechts */
+.fold-row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 4px; margin: 6px 0 0; background: none; border: 0; font: inherit; font-size: .92rem; font-weight: 700; color: var(--muted); text-align: left; cursor: pointer; list-style: none; text-transform: none; letter-spacing: normal; }
+.fold-row::-webkit-details-marker { display: none; }
+summary.fold-row { margin: 0; }
+details.more summary.fold-row, details.diktat summary.fold-row { min-height: 40px; padding: 0; font-size: .9rem; }
+.more-btn.fold-row { display: flex; }
+/* 3 ⓘ als runder Knopf am Titel, 17 mit großer Tippfläche */
+.i-btn, .k-i { position: relative; flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1.5px solid rgb(var(--w) / .3); background: none; color: var(--muted); font: italic 700 .8rem/1 Georgia, serif; cursor: pointer; }
+.i-btn::after, .k-i::after { content: ""; position: absolute; inset: -9px; }
+.i-btn.on, .k-i.on { background: var(--hi); color: var(--on-hi); border-color: transparent; }
+.c-title .i-btn { margin-left: 4px; }
+.c-title .chv ~ .i-btn, .c-title .i-btn ~ .chv { margin-left: 8px; }
+details.i-box { margin: 6px 0 10px; font-size: .86rem; line-height: 1.45; }
+details.i-box > p { margin: 4px 0 0; color: var(--text); }
+details.i-box > .i-q { margin: 0; font-weight: 700; }
+details.i-box .k-r { color: var(--muted); }
+.supp-toggle { min-height: 44px; }
+/* 4 Pfeil-Knöpfe ‹ › überall rund */
+.icon-btn.nav-rund { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border-radius: 99px; border: 1px solid rgb(var(--w) / .2); background: rgb(var(--w) / .08); color: var(--text); }
+.icon-btn.nav-rund .chv { stroke: var(--text); width: 20px; height: 20px; }
+.icon-btn.nav-rund:disabled { opacity: .35; }
+/* 5 Chips in zwei Größen: groß zum Umschalten, klein zum Ankreuzen */
+.f-chips .chip, .z-chip { min-height: 34px; padding: 6px 12px; font-size: .82rem; font-weight: 600; border-radius: 999px; }
+.z-chip.on { font-weight: 600; }
+/* 6 Eintragen-Knöpfe gleich */
+.wide-btn { display: block; width: 100%; }
+/* 7 Kartentitel auf Heute wie alle anderen */
+.t-head { margin: 0 0 10px; }
+.hero .t-head { margin-bottom: 6px; }
+/* 8 Großbuchstaben nur noch für Tage in Listen */
+.date, .eyebrow, .c-now, .c-lbl, .z-r-lbl, .supp-when, .opt-h, .zu-k, .n-grp, .t-label { text-transform: none; letter-spacing: .01em; }
+.c-lbl, .n-grp, .supp-when, .zu-k { font-size: .78rem; }
+.section-h { margin: 26px 4px 10px; font-family: var(--serif); font-size: 1.2rem; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text); font-variation-settings: "SOFT" 100; }
+/* 13 Sportarten als Piktogramme */
+.sport-pick { display: grid; grid-template-columns: repeat(4, 1fr); }
+.sport-pick .chip { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; padding: 6px 8px; }
+.sport-pick .chip .pick-ico { width: 30px; height: 30px; margin: 0; }
+.sport-pick .chip span { display: none; }
+.sport-pick .chip.active span { display: inline; }
+.chip.active .ex-ico .ex-b, .chip.active .ex-ico .ex-g { stroke: var(--on-hi); }
+.chip.active .ex-ico .ex-b-fill, .chip.active .ex-ico .ex-g-fill { fill: var(--on-hi); }
+/* 14 Glühbirne mit der Schrift der App */
+.zu-bulb { font: inherit; }
+/* 16 Tabelle je Phase passt in die Karte */
+.c-table { font-size: .78rem; }
+.c-table th, .c-table td { padding: 6px 5px; }
