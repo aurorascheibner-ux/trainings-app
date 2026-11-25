@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-theme="moos" data-design="glas">
+<html lang="de" data-theme="papier-klassisch" data-design="papier">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -23,9 +23,9 @@
     // Kurze Phasennamen in der Anzeige; intern bleiben die langen Namen
     window.PN = function (p) { return { Follikelphase: "Follikel", Lutealphase: "Luteal" }[p] || p; };
     // Design und Farbe vor dem ersten Zeichnen setzen (Design steckt im Namen der Farbe, z. B. "papier-salbei")
-    window.TB_FONTS = {glas:"Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700",papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",stein:"DM+Serif+Display&family=Manrope:wght@400;500;600;700",tinte:"Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500",bento:"Bricolage+Grotesque:opsz,wght@12..96,400..800",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Syne:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600",kreide:"Archivo:wdth,wght@100..125,400..800",kaugummi:"Fredoka:wght@400..700&family=Nunito:wght@400;600;700",klartext:"Atkinson+Hyperlegible:wght@400;700"};
-    (function(){var h=document.documentElement,t="moos";try{t=localStorage.getItem("theme")||"moos"}catch(e){}
-    var d=t.indexOf("-")>0?t.split("-")[0]:"glas";if(!TB_FONTS[d]){d="glas";t="moos"}
+    window.TB_FONTS = {papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Syne:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600",kreide:"Archivo:wdth,wght@100..125,400..800",kaugummi:"Fredoka:wght@400..700&family=Nunito:wght@400;600;700",klartext:"Atkinson+Hyperlegible:wght@400;700"};
+    (function(){var h=document.documentElement,t="papier-klassisch";try{t=localStorage.getItem("theme")||t}catch(e){}
+    var d=t.indexOf("-")>0?t.split("-")[0]:"";if(!TB_FONTS[d]){d="papier";t="papier-klassisch"}
     h.dataset.theme=t;h.dataset.design=d;h.dataset.page=location.hash.slice(1)||"heute";
     document.getElementById("font-link").href="https://fonts.googleapis.com/css2?family="+TB_FONTS[d]+"&display=swap"})();
   </script>
@@ -181,11 +181,11 @@
       <div class="grid today-grid">
         <a class="glass tile" href="#training" data-tile="training" style="--accent: var(--c1)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
-          <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
+          <strong class="tile-h">Training <svg class="chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
         </a>
         <a class="glass tile" href="#befinden" data-tile="befinden" data-goto-ksub="befinden" style="--accent: var(--c4)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
-          <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
+          <strong class="tile-h">Befinden <svg class="chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
         </a>
       </div>
       <a class="glass hero" href="#zyklus" aria-label="Zum Zyklus">

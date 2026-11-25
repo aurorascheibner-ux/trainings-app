@@ -812,7 +812,7 @@ html[data-phase] { --fx-col: color-mix(in srgb, var(--phase) 70%, var(--tint)); 
 .bgfx i:nth-child(3) { width: 34vmax; height: 34vmax; left: 8vw;    top: 95vh;  transform: translate3d(0, calc(var(--sy) * -0.42px), 0); opacity: .7; }
 .bgfx i:nth-child(4) { width: 26vmax; height: 26vmax; right: 4vw;   top: 160vh; transform: translate3d(0, calc(var(--sy) * -0.55px), 0); opacity: .6; background: color-mix(in srgb, var(--c4) var(--fx-a), transparent); }
 /* helle Designs: etwas zarter */
-:root:where([data-theme*="papier"]:not([data-theme$="dunkel"]), [data-theme^="stein"]:not([data-theme$="abend"]), [data-theme="tinte-creme"], [data-theme^="bento"]:not([data-theme$="dunkel"])) { --fx-a: 20%; }
+:root:where([data-theme*="papier"]:not([data-theme$="dunkel"])) { --fx-a: 20%; }
 /* Bauhaus: klare Formen statt Nebel */
 [data-design="bauhaus"] { --fx-blur: 0px; --fx-a: 14%; }
 [data-design="bauhaus"] .bgfx i:nth-child(2) { border-radius: 0; }
@@ -914,3 +914,15 @@ details.i-box .k-r { color: var(--muted); }
 /* 16 Tabelle je Phase passt in die Karte */
 .c-table { font-size: .78rem; }
 .c-table th, .c-table td { padding: 6px 5px; }
+
+/* ---------- Nachschliff (25.11. nachmittags) ---------- */
+/* Phasen-Leiste wandert beim Scrollen über den Grafiken mit */
+.phase-strip { position: sticky; top: calc(env(safe-area-inset-top) + 8px); z-index: 20; background: color-mix(in srgb, var(--panel, #222) 82%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 18px -10px rgba(0,0,0,.45); }
+/* Kacheln auf Heute mit Pfeil wie „Ernährung heute“ */
+.tile-h { display: flex; align-items: center; gap: 6px; }
+.tile-h .chv { margin-left: auto; stroke: currentColor; opacity: .7; }
+/* Ernährung: Aufklapper */
+.eat-fold { margin-top: 8px; }
+.eat-fold > summary .fold-meta { margin-left: 6px; font-weight: 600; opacity: .8; }
+.eat-fold[open] > summary { margin-bottom: 4px; }
+.fold-empty { margin: 4px 4px 10px; }

@@ -15,7 +15,8 @@
     // Hüfte nach hinten, Rücken gerade, Stange vor den Knien
     "Rumänisches Kreuzheben": H(8, 9) + B("11,11", "22,14") + B("22,14", "21,21", "22,28") + B("13,12", "14,21") + BAR(8, 21, 22),
     // hängt an der Stange, Kinn auf Höhe der Stange
-    "Klimmzug": BAR(4, 28, 5) + B("10,5", "11,11", "15,13") + B("22,5", "21,11", "17,13") + H(16, 8.8) + B("16,13", "16,21") + B("16,21", "13,26", "12,30") + B("16,21", "19,26", "20,30"),
+    // oben im Zug: Kinn über der Stange, Ellbogen seitlich unten, Beine gestreckt
+    "Klimmzug": BAR(3, 29, 9) + H(16, 5) + B("9,9", "7,14", "12,13") + B("23,9", "25,14", "20,13") + B("12,13", "20,13") + B("16,13", "16,22") + B("16,22", "14.5,30") + B("16,22", "17.5,30"),
     // Liegestütz, ein Knie zur Brust
     "Beine anziehen im Liegestütz": H(5.5, 13) + B("8,15", "9,26") + B("8,15", "21,19") + B("21,19", "29,26") + B("21,19", "15,21", "17,26") + LINE(3, 27.5, 30, 27.5),
     // Ausfallschritt mit Kurzhanteln

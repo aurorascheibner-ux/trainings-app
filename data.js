@@ -402,15 +402,29 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
   const days = [...new Set(items.map((it) => it.date))];
   const cut = !showAll.has(table) && days.length > 7 ? days[6] : null;
   const shown = cut ? items.filter((it) => it.date >= cut) : items;
-  el.innerHTML = shown.map((it) => {
-    const head = it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}${sumTxt(it.date)}</h3>` : "";
+  const rows = (arr, heads = true) => arr.map((it) => {
+    const head = heads && it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}${sumTxt(it.date)}</h3>` : "";
     lastDate = it.date;
     return `${head}<button type="button" class="glass entry" data-edit="${table}" data-key="${esc(it.key)}">
       <span class="entry-main"><strong>${esc(it.title)}</strong>${it.sub ? `<span class="muted small">${esc(it.sub)}</span>` : ""}${it.note ? `<span class="note small">${esc(it.note)}</span>` : ""}</span>
       ${CHEV()}</button>`;
-  }).join("") + (cut ? `<button type="button" class="fold-row more-btn" data-more="${table}">Ältere Einträge · ${days.length - 7} ${days.length - 7 === 1 ? "Tag" : "Tage"} ${CHEV("down")}</button>` : "");
+  }).join("");
+  const moreBtn = cut ? `<button type="button" class="fold-row more-btn" data-more="${table}">Ältere Einträge · ${days.length - 7} ${days.length - 7 === 1 ? "Tag" : "Tage"} ${CHEV("down")}</button>` : "";
+  if (table === "ernaehrung") {
+    // Ernährung: Gegessenes eingeklappt unter der Übersicht (Wunsch 25.11.)
+    const td = today(), heute = shown.filter((it) => it.date === td), frueher = shown.filter((it) => it.date !== td);
+    const fold = (key, label, body) => `<details class="fold eat-fold" data-fold="${key}"${openFolds.has(key) ? " open" : ""}><summary class="fold-row">${label} ${CHEV("down")}</summary>${body}</details>`;
+    const n = heute.length, s = daySum[td];
+    el.innerHTML = fold("heute", `Heute gegessen <span class="fold-meta">${n ? n + (n === 1 ? " Eintrag" : " Einträge") + (s ? " · " + fmtNum(Math.round(s.k)) + " kcal" : "") : "noch nichts"}</span>`,
+      n ? rows(heute, false) : `<p class="muted small fold-empty">Heute ist noch nichts eingetragen.</p>`)
+      + (frueher.length || cut ? fold("frueher", "Frühere Tage", rows(frueher) + moreBtn) : "");
+    return;
+  }
+  el.innerHTML = rows(shown) + moreBtn;
 }
 const showAll = new Set();
+const openFolds = new Set();
+document.addEventListener("toggle", (e) => { const d = e.target; if (!d.dataset || !d.dataset.fold) return; if (d.open) openFolds.add(d.dataset.fold); else openFolds.delete(d.dataset.fold); }, true);
 document.addEventListener("click", (e) => {
   const m = e.target.closest("[data-more]"); if (!m) return;
   showAll.add(m.dataset.more); renderAll();
