@@ -200,11 +200,11 @@
 [data-design="beton"] .icon-btn.glass { border-radius: 0; }
 
 /* ---------- Bauhaus: Kunst statt App ---------- */
-[data-design="bauhaus"] { --serif: "Jost", system-ui, sans-serif; --sans: "Work Sans", system-ui, sans-serif; --radius: 0px; }
+[data-design="bauhaus"] { --serif: "Syne", system-ui, sans-serif; --sans: "Work Sans", system-ui, sans-serif; --radius: 0px; }
 [data-design="bauhaus"] .glow { display: block; overflow: hidden; background: none; }
 [data-design="bauhaus"] .glow::before { content: ""; position: absolute; right: -80px; top: -80px; width: 240px; height: 240px; border-radius: 50%; background: var(--red); }
 [data-design="bauhaus"] .glow::after { content: ""; position: absolute; left: -30px; bottom: 90px; width: 0; height: 0; border-left: 80px solid transparent; border-right: 80px solid transparent; border-bottom: 140px solid var(--yellow); opacity: .85; }
-[data-design="bauhaus"] .topbar h1 { font-weight: 600; letter-spacing: .01em; line-height: 1.05; max-width: 78%; }
+[data-design="bauhaus"] .topbar h1 { font-weight: 700; letter-spacing: .01em; line-height: 1.05; max-width: 78%; }
 [data-design="bauhaus"] .date { font-weight: 600; color: var(--text); }
 [data-design="bauhaus"] .c-title, [data-design="bauhaus"] .tile strong, [data-design="bauhaus"] .hero h2, [data-design="bauhaus"] .entry strong, [data-design="bauhaus"] .sheet h2 { font-weight: 600; letter-spacing: .01em; }
 [data-design="bauhaus"] .eyebrow, [data-design="bauhaus"] .t-label, [data-design="bauhaus"] .supp-when, [data-design="bauhaus"] .section-h { font-family: var(--serif); font-weight: 600; letter-spacing: .14em; color: inherit; }

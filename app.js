@@ -19,7 +19,7 @@ const DESIGNS = [
   { id: "tinte",  name: "Tinte",  desc: "Elegant und präzise, Zahlen wie ein Messgerät", font: "Instrument Serif", radius: 3 },
   { id: "bento",  name: "Bento",  desc: "Modern und freundlich, farbige Kacheln", font: "Bricolage Grotesque", radius: 14 },
   { id: "beton",  name: "Beton",  desc: "Roh und laut, dicke Rahmen, Signalfarben", font: "Space Grotesk", radius: 0 },
-  { id: "bauhaus", name: "Bauhaus", desc: "Große Formen in Rot, Gelb und Blau", font: "Jost", radius: 0 },
+  { id: "bauhaus", name: "Bauhaus", desc: "Große Formen in Rot, Gelb und Blau", font: "Syne", radius: 0 },
   { id: "terminal", name: "Terminal", desc: "Leuchtschrift wie ein alter Computer", font: "VT323", radius: 0 },
   { id: "kreide",   name: "Kreide",   desc: "Boulderhalle: Wand, Kreide, Routen-Tape", font: "Archivo", radius: 10 },
   { id: "kaugummi", name: "Kaugummi", desc: "Sticker in Bonbonfarben, für Teenager", font: "Fredoka", radius: 28 },

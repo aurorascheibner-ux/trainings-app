@@ -903,7 +903,7 @@
     const box = document.querySelector(`[data-charts="${view}"]`);
     if (!box || box.closest("[hidden]")) return;
     box.replaceChildren();
-    pageLeg = new Map();
+    pageLeg = view === "heute" ? null : new Map(); // auf Heute bleibt die Legende in der Karte (Wunsch 25.11.)
     const P = window.TBPlan;
     if (view === "heute" && P) P.woche(box, cache);
     if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche"));
@@ -919,7 +919,7 @@
     if (view === "zyklus") zyklusKarten(box);
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
     if (view === "befinden") koerper(box, cache._missing && cache._missing.koerper);
-    if (pageLeg.size) {
+    if (pageLeg && pageLeg.size) {
       const order = [...PHASES, "Krank"].filter((t) => pageLeg.has(t)).map((t) => pageLeg.get(t));
       const strip = E("div", "c-legend phase-strip"); strip.setAttribute("aria-label", "Farben in den Grafiken");
       order.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text === "Follikelphase" ? "Follikel" : text === "Lutealphase" ? "Luteal" : text)); strip.appendChild(s); });

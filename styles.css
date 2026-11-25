@@ -372,8 +372,10 @@ main { max-width: 560px; margin: 0 auto; }
 .c-est { fill: var(--hi); }
 .c-est-val { font-size: 10px; font-weight: 700; fill: var(--hi); }
 .ex-ico { width: 1.6em; height: 1.6em; flex: none; vertical-align: -.45em; margin-right: .4em; fill: none; stroke: var(--hi); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.ex-ico .ex-head { fill: var(--hi); stroke: none; }
-.ex-ico .ex-plate { stroke-width: 3.2; }
+.ex-ico .ex-b { stroke: var(--text); stroke-width: 3.4; }
+.ex-ico .ex-b-fill { fill: var(--text); stroke: none; }
+.ex-ico .ex-g { stroke: var(--hi); stroke-width: 2.2; }
+.ex-ico .ex-g-fill { fill: var(--hi); stroke: none; }
 .p-name { display: flex; align-items: center; min-width: 0; }
 .p-top .ex-ico { width: 1.9em; height: 1.9em; }
 .c-avg { fill: none; stroke: var(--text); stroke-width: 2; opacity: .85; }
