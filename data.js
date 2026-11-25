@@ -312,7 +312,39 @@ function renderAll() {
   renderToday();
   renderCharts();
   renderZyklus();
+  renderBnow();
 }
+
+// ---------- Befinden: „Wie geht's dir heute?“ mit einem Tipp (Usability 25.11.) ----------
+const B_OPT = [["gut", "Gut", "#i-gut"], ["krank", "Krank", "#i-krank"], ["verletzt", "Verletzt", "#i-verletzt"], ["erschoepft", "Erschöpft", "#i-erschoepft"]];
+function renderBnow() {
+  const box = $("[data-bnow]"); if (!box) return;
+  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const now = open[0] ? open[0].status : "gut";
+  box.innerHTML = `<h3 class="c-title">Wie geht's dir heute?</h3>
+    <div class="b-opts">${B_OPT.map(([k, l, ic]) => `<button type="button" class="b-opt${k === now ? " on" : ""}" data-bset="${k}" aria-pressed="${k === now}"><svg class="ico"><use href="${ic}"/></svg><span>${l}</span></button>`).join("")}</div>
+    ${open[0] ? `<p class="c-hint">${esc(TABLES.befinden.title(open[0]))} seit ${esc(fmtDate(open[0].datum_von))}</p>` : ""}`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-bset]"); if (!b || !db) return;
+  const want = b.dataset.bset, t = today();
+  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  if (open.some((r) => r.status === want)) return;
+  const y = isoDate(new Date(Date.now() - 864e5));
+  // Offene Einträge beenden: bei „Gut“ bis gestern, bei einem Wechsel bis heute
+  for (const r of open) {
+    const bis = want === "gut" ? (r.datum_von <= y ? y : r.datum_von) : t;
+    const { error } = await db.from("befinden").update({ datum_bis: bis }).eq("id", r.id);
+    if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
+  }
+  if (want !== "gut") {
+    const { error } = await db.from("befinden").insert({ datum_von: t, status: want });
+    if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
+  }
+  toast(want === "gut" ? "Schön, dass es dir gut geht ✓" : B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓");
+  await load("befinden");
+  renderAll();
+});
 
 function renderCharts() {
   if (!window.TBCharts) return;
@@ -672,7 +704,10 @@ function openPicker(tables = Object.keys(TABLES)) {
   $("#entry-fields").innerHTML = "";
   $("#entry-msg").textContent = "";
   const p = $("#entry-picker");
-  p.innerHTML = tables.map((k) => [k, TABLES[k]]).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${t.label}</button>`).join("");
+  // Zuletzt benutzte Bereiche zuerst (Usability 25.11.)
+  const lastUse = (k) => (cache[k] || []).reduce((m, r) => (String(r.created_at || "") > m ? String(r.created_at) : m), "");
+  const order = tables.slice().sort((a, b) => lastUse(b).localeCompare(lastUse(a)));
+  p.innerHTML = order.map((k) => [k, TABLES[k]]).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${window.TBPickIcon ? window.TBPickIcon(k) : ""}<span>${t.label}</span></button>`).join("");
   p.hidden = false;
   $(".sheet-actions").hidden = true;
   dlg.showModal();

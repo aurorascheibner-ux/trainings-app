@@ -13,5 +13,15 @@
     "Trizeps-Dips": L("6,13", "6,29") + L("26,13", "26,29") + L("4,13", "9,13") + L("23,13", "28,13") + H(16, 8) + L("16,11", "16,20") + L("16,12", "10,17", "7,13") + L("16,12", "22,17", "25,13") + L("16,20", "13,26", "15,30") + L("16,20", "19,26", "17,30"),
   };
   const GEN = BAR(5, 27, 16) + L("9,12", "9,20") + L("23,12", "23,20");
+  // Icons für das Eintragen-Menü (Usability 25.11.)
+  const PICK = {
+    bouldern: `<path d="M9 22c-3-4 0-11 6-13 5-2 10 1 10 6 0 6-6 10-11 10-2 0-4-1-5-3z"/><circle cx="17" cy="16" r="2" class="ex-head"/>`,
+    kraft: GEN,
+    laufen: H(19, 5) + L("18,9", "15,17") + L("17,11", "12,13", "9,11") + L("17,11", "21,14", "24,12") + L("15,17", "19,21", "17,27") + L("15,17", "11,22", "6,22"),
+    rad: `<circle cx="8" cy="21" r="5.5"/><circle cx="24" cy="21" r="5.5"/>` + L("8,21", "13,12", "21,12", "24,21") + L("13,12", "16,21", "21,12") + L("11,9", "15,9") + L("20,9", "22,8"),
+    koerper: `<rect x="5" y="7" width="22" height="20" rx="4"/>` + L("11,13", "21,13") + L("16,13", "18,10"),
+  };
+  const SYM = { ernaehrung: "i-ernaehrung", zyklus: "i-zyklus", befinden: "i-befinden" };
+  window.TBPickIcon = (k) => SYM[k] ? `<svg class="ico pick-ico" aria-hidden="true"><use href="#${SYM[k]}"/></svg>` : `<svg class="ex-ico pick-ico" viewBox="0 0 32 32" aria-hidden="true">${PICK[k] || GEN}</svg>`;
   window.TBExIcon = (u) => `<svg class="ex-ico" viewBox="0 0 32 32" aria-hidden="true">${P[u] || GEN}</svg>`;
 })();

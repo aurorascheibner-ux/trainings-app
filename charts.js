@@ -97,7 +97,12 @@
   }
   const onTip = (sel, T, fn) => sel.on("pointerdown pointermove", (ev, d) => fn(ev, d)).on("pointerleave", T.hide);
 
+  // Zyklusphasen und „Krank“ stehen einmal oben auf der Seite statt unter jeder Grafik (Usability 25.11.)
+  let pageLeg = null;
+  const PAGE_LEG = new Set([...PHASES, "Krank"]);
   function legend(el, items) {
+    if (pageLeg) items = items.filter(([color, text, op]) => { if (!PAGE_LEG.has(text)) return true; pageLeg.set(text, [color, text, op]); return false; });
+    if (!items.length) return;
     const lg = E("div", "c-legend");
     items.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text)); lg.appendChild(s); });
     el.appendChild(lg);
@@ -898,6 +903,7 @@
     const box = document.querySelector(`[data-charts="${view}"]`);
     if (!box || box.closest("[hidden]")) return;
     box.replaceChildren();
+    pageLeg = new Map();
     const P = window.TBPlan;
     if (view === "heute" && P) P.woche(box, cache);
     if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche"));
@@ -913,6 +919,13 @@
     if (view === "zyklus") zyklusKarten(box);
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
     if (view === "befinden") koerper(box, cache._missing && cache._missing.koerper);
+    if (pageLeg.size) {
+      const order = [...PHASES, "Krank"].filter((t) => pageLeg.has(t)).map((t) => pageLeg.get(t));
+      const strip = E("div", "c-legend phase-strip"); strip.setAttribute("aria-label", "Farben in den Grafiken");
+      order.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text === "Follikelphase" ? "Follikel" : text === "Lutealphase" ? "Luteal" : text)); strip.appendChild(s); });
+      box.prepend(strip);
+    }
+    pageLeg = null;
   }
 
   // Für die Karte „Essen heute“ auf der Startseite
