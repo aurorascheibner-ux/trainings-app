@@ -155,6 +155,9 @@
         if (pts.length > 1) svg.append("path").datum(pts).attr("d", d3.line().curve(d3.curveMonotoneX).x((p) => x(p.d)).y((p) => y(p.v))).style("fill", "none").style("stroke", s.color).attr("stroke-width", 2.2).attr("stroke-linecap", "round");
         const g = svg.append("g").selectAll("g").data(pts).join("g");
         g.append("circle").attr("cx", (p) => x(p.d)).attr("cy", (p) => y(p.v)).attr("r", 4).style("fill", s.color).attr("class", "c-dot");
+        // Wert über jedem Punkt (Körper, Wunsch 25.11.); bei vielen Punkten jeder zweite, der letzte immer
+        if (s.vals) { const step = pts.length > 14 ? Math.ceil(pts.length / 12) : 1;
+          g.filter((p, i) => i % step === 0 || i === pts.length - 1).append("text").attr("class", "c-val").attr("x", (p) => Math.max(m.l + 10, Math.min(W - m.r - 10, x(p.d)))).attr("y", (p) => y(p.v) - 9).attr("text-anchor", "middle").text((p) => s.vals(p)); }
         onTip(g.append("circle").attr("cx", (p) => x(p.d)).attr("cy", (p) => y(p.v)).attr("r", 14).style("fill", "transparent"), T, (ev, p) => T.show(ev, fmtD(p.d), [{ color: s.color, text: s.name + ": " + p.label }]));
       }
     });
@@ -863,8 +866,8 @@
     const plot = E("div"); body.appendChild(plot);
     if (pts.length) {
       const vs = pts.map((p) => p.v), span = Math.max(m.noise * 4, Math.max(...vs) - Math.min(...vs));
-      const mid = (Math.max(...vs) + Math.min(...vs)) / 2, nt = niceTicks(mid - span * 0.65, mid + span * 0.65);
-      chart(plot, { kind: "line", phases: true, h: 170, left: { domain: nt.domain, ticks: nt.ticks, fmt: (t) => kfmt(t, Number.isInteger(t) ? 0 : 1) }, series: [{ name: m.l, color: "var(--c2)", pts }] });
+      const mid = (Math.max(...vs) + Math.min(...vs)) / 2, nt = niceTicks(mid - span * 0.65, mid + span * 0.8);
+      chart(plot, { kind: "line", phases: true, h: 180, left: { domain: nt.domain, ticks: nt.ticks, fmt: (t) => kfmt(t, Number.isInteger(t) ? 0 : 1) }, series: [{ name: m.l, color: "var(--c2)", pts, vals: (p) => kfmt(p.v, m.d) }] });
     }
     const info = E("details", "k-why"); info.appendChild(E("summary", "", "ⓘ Was ist " + m.l + "?"));
     info.appendChild(E("p", "", m.t)); info.appendChild(E("p", "k-r", m.r)); body.appendChild(info);

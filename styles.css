@@ -926,3 +926,6 @@ details.i-box .k-r { color: var(--muted); }
 .eat-fold > summary .fold-meta { margin-left: 6px; font-weight: 600; opacity: .8; }
 .eat-fold[open] > summary { margin-bottom: 4px; }
 .fold-empty { margin: 4px 4px 10px; }
+
+/* Werte über den Punkten (Körper) */
+.c-val { font-size: 10.5px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--card, #000); stroke-width: 3px; stroke-linejoin: round; }
