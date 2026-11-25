@@ -21,6 +21,9 @@ const DESIGNS = [
   { id: "beton",  name: "Beton",  desc: "Roh und laut, dicke Rahmen, Signalfarben", font: "Space Grotesk", radius: 0 },
   { id: "bauhaus", name: "Bauhaus", desc: "Große Formen in Rot, Gelb und Blau", font: "Jost", radius: 0 },
   { id: "terminal", name: "Terminal", desc: "Leuchtschrift wie ein alter Computer", font: "VT323", radius: 0 },
+  { id: "kreide",   name: "Kreide",   desc: "Boulderhalle: Wand, Kreide, Routen-Tape", font: "Archivo", radius: 10 },
+  { id: "kaugummi", name: "Kaugummi", desc: "Sticker in Bonbonfarben, für Teenager", font: "Fredoka", radius: 28 },
+  { id: "klartext", name: "Klartext", desc: "Groß und kontrastreich, leicht zu lesen", font: "Atkinson Hyperlegible", radius: 12 },
 ];
 const THEMES = [
   { id: "moos",     d: "glas", name: "Moos & Bernstein",    desc: "mattes Olivgrün, Amber",   bg1: "#3f4430", bg2: "#2c3022", hi: "#e3a04a", c2: "#b9c48e" },
@@ -53,6 +56,18 @@ const THEMES = [
   { id: "terminal-gruen",     d: "terminal", name: "Grün",      desc: "klassischer grüner Bildschirm", bg1: "#050a06", bg2: "#0b1a0e", hi: "#5dff8f", c2: "#2fae5b" },
   { id: "terminal-bernstein", d: "terminal", name: "Bernstein", desc: "warmes Orange",                bg1: "#0d0800", bg2: "#1a1000", hi: "#ffb000", c2: "#a87400" },
   { id: "terminal-eis",       d: "terminal", name: "Eis",       desc: "kühles Hellblau",              bg1: "#020812", bg2: "#081a2c", hi: "#7fd4ff", c2: "#3d82a8" },
+  { id: "kreide-halle", d: "kreide", name: "Halle", desc: "graue Wand, bunte Griffe",   bg1: "#353a40", bg2: "#ff5d8f", hi: "#ffd23f", c2: "#3ddc97" },
+  { id: "kreide-fels",  d: "kreide", name: "Fels",  desc: "Sandstein, Rost, Moos",      bg1: "#f3ebdd", bg2: "#3f6e8c", hi: "#b4532a", c2: "#6b7f3a" },
+  { id: "kreide-kalk",  d: "kreide", name: "Kalk",  desc: "weiß wie Kreide, klare Tapes", bg1: "#ffffff", bg2: "#e5383b", hi: "#1c4fd6", c2: "#14a44d" },
+  { id: "kreide-uv",    d: "kreide", name: "UV",    desc: "Schwarzlicht-Boulderhalle",  bg1: "#1c1836", bg2: "#ff3df5", hi: "#c6ff3d", c2: "#3dfff0" },
+  { id: "kaugummi-bubble", d: "kaugummi", name: "Bubble",  desc: "Rosa, Flieder, Minze",   bg1: "#fff7fb", bg2: "#b9a2ff", hi: "#ff4fa3", c2: "#8ff0d8" },
+  { id: "kaugummi-limo",   d: "kaugummi", name: "Limo",    desc: "Limette, Zitrone, Himmel", bg1: "#fffff4", bg2: "#ffe25c", hi: "#3fb618", c2: "#7fe3ff" },
+  { id: "kaugummi-ozean",  d: "kaugummi", name: "Ozean",   desc: "Aqua, Pfirsich, Lila",   bg1: "#f5fdff", bg2: "#ffd6a5", hi: "#0a84ff", c2: "#c3b5ff" },
+  { id: "kaugummi-party",  d: "kaugummi", name: "Party",   desc: "Neon auf Dunkellila",    bg1: "#2a1846", bg2: "#ff4fd8", hi: "#ffe24f", c2: "#4fe3ff" },
+  { id: "klartext-hell",     d: "klartext", name: "Hell",     desc: "Schwarz auf Weiß, Dunkelblau", bg1: "#ffffff", bg2: "#000000", hi: "#0b3d91", c2: "#1d6b2f" },
+  { id: "klartext-warm",     d: "klartext", name: "Warm",     desc: "Creme, Braun, Tannengrün",     bg1: "#fffaf1", bg2: "#1e1408", hi: "#1f5a3a", c2: "#8a4b0f" },
+  { id: "klartext-kontrast", d: "klartext", name: "Kontrast", desc: "Gelb auf Schwarz",             bg1: "#000000", bg2: "#ffffff", hi: "#ffe600", c2: "#5cff8a" },
+  { id: "klartext-dunkel",   d: "klartext", name: "Dunkel",   desc: "Weiß auf Dunkelgrau",          bg1: "#262a30", bg2: "#ffffff", hi: "#8cc8ff", c2: "#8fe0a8" },
 ];
 // Hintergrundfarbe des Handys (Statusleiste) je Farbe
 const PAGE_BG = { "papier-klassisch": "#f4f0e8", "papier-salbei": "#eceee6", "papier-rose": "#f6ece8", "papier-dunkel": "#1b1a18",
@@ -61,7 +76,10 @@ const PAGE_BG = { "papier-klassisch": "#f4f0e8", "papier-salbei": "#eceee6", "pa
   "bento-pastell": "#efefec", "bento-erde": "#efe9e1", "bento-kuehl": "#eceff2", "bento-dunkel": "#111214",
   "beton-signal": "#f1ede4", "beton-pink": "#fde8f1", "beton-nacht": "#141414",
   "bauhaus-klassisch": "#efe7d6", "bauhaus-pastell": "#f3ede2", "bauhaus-nacht": "#151515",
-  "terminal-gruen": "#050a06", "terminal-bernstein": "#0d0800", "terminal-eis": "#020812" };
+  "terminal-gruen": "#050a06", "terminal-bernstein": "#0d0800", "terminal-eis": "#020812",
+  "kreide-halle": "#2a2e33", "kreide-fels": "#e8dcc7", "kreide-kalk": "#f4f4f1", "kreide-uv": "#120f24",
+  "kaugummi-bubble": "#ffe3f1", "kaugummi-limo": "#f6ffd6", "kaugummi-ozean": "#dcf7ff", "kaugummi-party": "#1b0f2e",
+  "klartext-hell": "#ffffff", "klartext-warm": "#f6efe2", "klartext-kontrast": "#000000", "klartext-dunkel": "#1c1f24" };
 const DEFAULT_THEME = "moos";
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },

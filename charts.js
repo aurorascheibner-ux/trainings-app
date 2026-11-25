@@ -97,7 +97,12 @@
   }
   const onTip = (sel, T, fn) => sel.on("pointerdown pointermove", (ev, d) => fn(ev, d)).on("pointerleave", T.hide);
 
+  // Zyklusphasen und „Krank“ stehen einmal oben auf der Seite statt unter jeder Grafik (Usability 25.11.)
+  let pageLeg = null;
+  const PAGE_LEG = new Set([...PHASES, "Krank"]);
   function legend(el, items) {
+    if (pageLeg) items = items.filter(([color, text, op]) => { if (!PAGE_LEG.has(text)) return true; pageLeg.set(text, [color, text, op]); return false; });
+    if (!items.length) return;
     const lg = E("div", "c-legend");
     items.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text)); lg.appendChild(s); });
     el.appendChild(lg);
@@ -247,7 +252,11 @@
   }
 
   // ---------- Kraft ----------
+  // Geschätztes 1RM (Epley), bei Klimmzug mit Körpergewicht gerechnet und als Zusatzgewicht gezeigt
+  const e1rm = (w, r) => w * (1 + r / 30);
+  const BW_EX = new Set(["Klimmzug", "Trizeps-Dips"]);
   function setChart(el, u, rows, mode) {
+    const bw = BW_EX.has(u), BWkg = (letzteWaage() || {}).gewicht_kg ? Number(letzteWaage().gewicht_kg) : 75;
     const val = (r) => mode === "sec" ? Number(r.dauer_s) || 0 : mode === "kg" ? Number(r.gewicht_kg) || 0 : Number(r.wdh) || 0;
     let dates = [...new Set(rows.map((r) => r.datum))].sort();
     const cut = dates.length > 8; if (cut) dates = dates.slice(-8);
@@ -255,12 +264,14 @@
       const rs = rows.filter((r) => r.datum === d).sort((a, b) => Number(a.satz) - Number(b.satz));
       // Ø Gewicht an dem Tag (Wunsch 24.11.: statt Vergleichswerten eine Linie durch die Säulen)
       const avg = mode === "kg" && rs.length ? d3.mean(rs, (r) => Number(r.gewicht_kg) || 0) : null;
-      return { d, date: pd(d), rs, avg };
+      let est = null;
+      if (mode === "kg") { const c = rs.filter((r) => Number(r.wdh) > 0 && Number(r.wdh) <= 12).map((r) => bw ? e1rm((Number(r.gewicht_kg) || 0) + BWkg, Number(r.wdh)) - BWkg : e1rm(Number(r.gewicht_kg) || 0, Number(r.wdh))); if (c.length) est = Math.round(d3.max(c)); }
+      return { d, date: pd(d), rs, avg, est };
     });
     const nMax = d3.max(groups, (g) => g.rs.length) || 1, need = (nMax * 24 + (nMax - 1) * 3) / 0.8;
     // Die Achse links bleibt stehen, auch wenn man die Balken seitlich wischt
     const AX = 36, W0 = Math.max(244, (Math.round(el.clientWidth) || 360) - AX), W = Math.max(W0, Math.ceil(10 + dates.length * need)), H = 230;
-    const vmax = d3.max(groups.flatMap((g) => g.rs.map(val))) || 1;
+    const vmax = d3.max([...groups.flatMap((g) => g.rs.map(val)), ...groups.map((g) => g.est || 0)]) || 1;
     const t = niceTicks(0, vmax * 1.2);
     const row = d3.select(el).append("div").attr("class", "c-yrow");
     const ax = row.append("svg").attr("class", "c-yaxis").attr("width", AX).attr("height", H).attr("viewBox", `0 0 ${AX} ${H}`);
@@ -283,7 +294,7 @@
     const T = tipOf(el), base = y(0);
     let anySick = false;
     // Platz rechts neben den Säulen für den Ø-Punkt, die Linie liegt hinter den Säulen
-    const RES = mode === "kg" ? 14 : 0;
+    const RES = mode === "kg" ? 22 : 0;
     groups.forEach((g) => {
       const gx = x(g.d), gw = x.bandwidth(), n = g.rs.length;
       g.bw = Math.min(38, Math.max(13, (gw - RES - (n - 1) * 3) / n)); g.off = gx + (gw - RES - (n * g.bw + (n - 1) * 3)) / 2;
@@ -312,12 +323,19 @@
         svg.append("line").attr("x1", gx + 4).attr("x2", gx + gw - 4).attr("y1", 6).attr("y2", 6).style("stroke", SICK).attr("stroke-width", 6).attr("stroke-linecap", "round").attr("stroke-dasharray", "0.1 10");
       }
     });
+    groups.filter((g) => g.est != null).forEach((g) => {
+      const cx = g.ax, cy = y(g.est), pl = bw ? "+" : "";
+      onTip(svg.append("path").attr("d", `M${cx},${cy - 5}L${cx + 5},${cy}L${cx},${cy + 5}L${cx - 5},${cy}Z`).attr("class", "c-est"), T,
+        (ev) => T.show(ev, fmtD(g.date), [{ text: "Geschätztes 1RM: " + pl + g.est + " kg" + (bw ? " Zusatzgewicht" : "") }]));
+      svg.append("text").attr("x", cx).attr("y", cy - 8).attr("text-anchor", "middle").attr("class", "c-val c-est-val").text(pl + g.est);
+    });
     av.forEach((g) => onTip(svg.append("circle").attr("cx", g.ax).attr("cy", y(g.avg)).attr("r", 4).attr("class", "c-avg-dot"), T,
       (ev) => T.show(ev, fmtD(g.date), [{ text: "Ø " + fnum(Math.round(g.avg * 10) / 10) + " kg über " + g.rs.length + " Sätze" }])));
     const li = [];
     d3.range(1, nMax + 1).forEach((sn) => li.push([SETC[(sn - 1) % SETC.length], "Satz " + sn]));
     if (anySick) li.push([SICK, "Krank"]);
     PHASES.filter((p) => usedPh.has(p)).forEach((p) => li.push([BANDC[p], p, 0.6]));
+    if (groups.some((g) => g.est != null)) li.push(["var(--hi)", "1RM geschätzt"]);
     if (av.length) li.push(["var(--text)", "Ø Gewicht"]);
     legend(el, li);
   }
@@ -337,8 +355,9 @@
     if (selten.length) { fold = E("details", "glass c-card k-selten"); const sm = E("summary"); sm.append(E("span", "c-title", "Seltene Übungen"), E("span", "k-cnt", selten.length + " ⌄")); fold.appendChild(sm); fold.appendChild(E("p", "c-note", "Weniger als 3 Termine: " + selten.join(", "))); }
     ulist.forEach((u) => {
       const rs = rows.filter((r) => r.uebung === u), sec = rs.some((r) => Number(r.dauer_s) > 0 && !Number(r.wdh)), kg = !sec && rs.some((r) => Number(r.gewicht_kg) > 0);
-      if (fold && selten.includes(u)) { const h = E("div", "k-selten-item"); h.appendChild(E("h4", "c-title", u)); const b = E("div", "c-body"); h.appendChild(b); fold.appendChild(h); todo.push([b, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]); return; }
+      if (fold && selten.includes(u)) { const h = E("div", "k-selten-item"); h.appendChild(E("h4", "c-title", u)); if (window.TBExIcon) h.lastChild.insertAdjacentHTML("afterbegin", window.TBExIcon(u)); const b = E("div", "c-body"); h.appendChild(b); fold.appendChild(h); todo.push([b, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]); return; }
       const body = card(parent, u);
+      if (window.TBExIcon) body.parentNode.querySelector(".c-title").insertAdjacentHTML("afterbegin", window.TBExIcon(u));
       todo.push([body, u, rs, sec ? "sec" : kg ? "kg" : "wdh"]);
     });
     if (fold) {
@@ -526,7 +545,7 @@
     // bester Wert je Spalte (Sessions: pro Phase-Durchgang, damit kurze Phasen fair sind)
     const best = [0, 1, 2, 3].map((j) => { const vs = rows.map((r) => r[5][j]).filter((v) => v != null && v > 0); return vs.length > 1 ? Math.max(...vs) : null; });
     const tbl = E("table", "c-table");
-    const th = E("tr"); ["Phase", "Boulder-Sessions", "Ø schwerster Boulder", "Ø schwerster Kraftsatz", "Lauf m/Schlag"].forEach((h) => th.appendChild(E("th", "", h)));
+    const th = E("tr"); ["Phase", "Boulder", "Ø Grad", "Ø Kraft", "Lauf m/♥"].forEach((h) => th.appendChild(E("th", "", h)));
     tbl.appendChild(th);
     rows.forEach((r) => { const tr = E("tr"); r.slice(0, 5).forEach((v, i) => { const td = E("td", "", String(v)); if (i === 0) { const dot = E("i"); dot.style.background = BANDC[v]; td.prepend(dot); } else if (best[i - 1] != null && r[5][i - 1] === best[i - 1]) td.className = "c-best"; tr.appendChild(td); }); tbl.appendChild(tr); });
     const wrap = E("div", "c-scroll"); wrap.appendChild(tbl); body.appendChild(wrap);
@@ -677,7 +696,7 @@
     });
     const avg = Math.round(d3.mean(withData, (d) => d.v)), avgZ = Math.round(d3.mean(withData, (d) => d.z));
     const treffer = withData.filter((d) => M.min ? d.v >= d.z * 0.9 : Math.abs(d.v - d.z) <= d.z * 0.1).length;
-    body.appendChild(E("p", "c-text", `Ø ${fnum(avg)} ${M.unit} pro Tag (Ziel Ø ${fnum(avgZ)}), an ${withData.length} Tagen mit Einträgen. ${M.min ? "Mindestens" : "Im Ziel (±10 %)"}: ${treffer} von ${withData.length} Tagen.`));
+    body.appendChild(E("p", "c-text", `Ø ${fnum(avg)} ${M.unit} · Ziel ${fnum(avgZ)} · ${treffer} von ${withData.length} Tagen ${M.min ? "erreicht" : "im Ziel"}`));
     legend(body, [["var(--hi)", M.min ? "genug (ab 90 %)" : "bis Ziel +10 %"], ["#e07a5f", M.min ? "zu wenig" : "mehr als 10 % drüber"], ["var(--text)", "Ziel"]]);
     if (foodMetric !== "kcal" && withData.some((d) => d.v === 0)) body.appendChild(E("p", "c-hint", "Bei älteren Einträgen fehlen manche Nährwerte, die Säulen sind dort zu niedrig."));
   }
@@ -707,7 +726,7 @@
       const name = String(r.lebensmittel || "").trim(), key = name.toLowerCase();
       if (!name || r.kcal == null || Number(r.kcal) <= 0 || heute.has(key)) return;
       const o = map.get(key) || { n: name, anzahl: 0 };
-      Object.assign(o, { m: r.menge || "", kcal: Number(r.kcal), p: Number(r.protein_g) || 0, b: Number(r.ballast_g) || 0, eigen: true });
+      Object.assign(o, { m: r.menge || "", kcal: Number(r.kcal), p: Number(r.protein_g) || 0, b: Number(r.ballast_g) || 0, eigen: true, rec: r });
       o.anzahl++; map.set(key, o);
     });
     const room = Math.max(kc, 0);
@@ -720,14 +739,23 @@
     const eigene = [...map.values()].map((f) => ({ ...f, s: score(f) })).filter((f) => f.s > 0).sort((a, b) => b.s - a.s).slice(0, 3);
     const names = new Set(eigene.map((f) => f.n.toLowerCase()));
     const extra = KLASSIKER.filter((f) => !names.has(f.n.toLowerCase())).map((f) => ({ ...f, s: score(f) })).filter((f) => f.s > 0).sort((a, b) => b.s - a.s).slice(0, Math.max(2, 5 - eigene.length));
-    const fehlt = [needP && `${fnum(Math.round(g.p))} g Eiweiß`, needB && `${fnum(Math.round(g.b))} g Ballaststoffe`].filter(Boolean).join(" und ");
-    body.appendChild(E("p", "c-text", `Dir fehlen noch ${fehlt}${room > 0 ? `, bei ${fnum(Math.round(room))} kcal übrig` : ", die kcal sind aber schon erreicht, also eher leichte Sachen"}.`));
     const list = E("div", "v-list");
     const row = (f, tag) => {
-      const r = E("div", "v-row"), top = E("div", "v-top");
+      // Antippen trägt es sofort für heute ein (Wunsch 24.11.)
+      const r = E("button", "v-row"), main = E("span", "v-main"), top = E("span", "v-top");
+      r.type = "button"; r.setAttribute("aria-label", f.n + " jetzt eintragen");
       top.append(E("b", "", f.n), E("span", "v-tag", tag));
       const gains = [f.p >= 1 && `+${fnum(Math.round(f.p))} g Eiweiß`, f.b >= 1 && `+${fnum(Math.round(f.b))} g Ballaststoffe`, `${fnum(Math.round(f.kcal))} kcal`].filter(Boolean).join(" · ");
-      r.append(top, E("div", "v-sub", (f.m ? f.m + ": " : "") + gains));
+      main.append(top, E("span", "v-sub", (f.m ? f.m + ": " : "") + gains));
+      r.append(main, E("span", "v-add", "+"));
+      r.addEventListener("click", () => {
+        if (r.disabled) return; r.disabled = true; r.classList.add("v-done"); r.lastChild.textContent = "✓";
+        const src = f.rec || {}, keep = ["kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"];
+        const rec = { datum: iso(todayUTC()), lebensmittel: f.n, menge: f.m || null, kcal: Math.round(f.kcal), protein_g: f.p };
+        keep.forEach((k) => { if (src[k] != null) rec[k] = src[k]; });
+        if (!f.rec && f.b) rec.ballast_g = f.b;
+        window.dispatchEvent(new CustomEvent("tb-quickadd", { detail: { table: "ernaehrung", rec } }));
+      });
       list.appendChild(r);
     };
     eigene.forEach((f) => row(f, f.anzahl > 1 ? `${f.anzahl}× gegessen` : "schon gegessen"));
@@ -797,7 +825,7 @@
     const rows = (C.koerper || []).slice().sort((a, b) => a.datum.localeCompare(b.datum) || String(a.created_at).localeCompare(String(b.created_at)));
     if (!rows.length) {
       const b = card(box, "Körperwerte");
-      b.appendChild(E("p", "c-hint", "Noch keine Messung. Tipp auf + oder schick mir einen Screenshot deiner Waage."));
+      b.appendChild(E("p", "c-hint", "Noch keine Messung."));
       return;
     }
     const last = rows[rows.length - 1];
@@ -875,6 +903,7 @@
     const box = document.querySelector(`[data-charts="${view}"]`);
     if (!box || box.closest("[hidden]")) return;
     box.replaceChildren();
+    pageLeg = new Map();
     const P = window.TBPlan;
     if (view === "heute" && P) P.woche(box, cache);
     if (view === "heute") wochenUebersicht(card(box, "Trainingstage pro Woche"));
@@ -890,6 +919,13 @@
     if (view === "zyklus") zyklusKarten(box);
     if (view === "ernaehrung") { const g = tagesziel(box); if (g) vorschlaege(box, g); essenVerlauf(box); }
     if (view === "befinden") koerper(box, cache._missing && cache._missing.koerper);
+    if (pageLeg.size) {
+      const order = [...PHASES, "Krank"].filter((t) => pageLeg.has(t)).map((t) => pageLeg.get(t));
+      const strip = E("div", "c-legend phase-strip"); strip.setAttribute("aria-label", "Farben in den Grafiken");
+      order.forEach(([color, text, op]) => { const s = E("span"); const i = E("i"); i.style.background = color; if (op) i.style.opacity = op; s.append(i, E("span", "", text === "Follikelphase" ? "Follikel" : text === "Lutealphase" ? "Luteal" : text)); strip.appendChild(s); });
+      box.prepend(strip);
+    }
+    pageLeg = null;
   }
 
   // Für die Karte „Essen heute“ auf der Startseite

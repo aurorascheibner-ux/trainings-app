@@ -16,9 +16,10 @@
   <link id="font-link" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="designs.css">
+  <link rel="stylesheet" href="designs-neu.css">
   <script>
     // Design und Farbe vor dem ersten Zeichnen setzen (Design steckt im Namen der Farbe, z. B. "papier-salbei")
-    window.TB_FONTS = {glas:"Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700",papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",stein:"DM+Serif+Display&family=Manrope:wght@400;500;600;700",tinte:"Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500",bento:"Bricolage+Grotesque:opsz,wght@12..96,400..800",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Jost:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600"};
+    window.TB_FONTS = {glas:"Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,100;1,9..144,400..600,100&family=Nunito:wght@400;600;700",papier:"Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700",stein:"DM+Serif+Display&family=Manrope:wght@400;500;600;700",tinte:"Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500",bento:"Bricolage+Grotesque:opsz,wght@12..96,400..800",beton:"Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700",bauhaus:"Jost:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700",terminal:"VT323&family=IBM+Plex+Mono:wght@400;500;600",kreide:"Archivo:wdth,wght@100..125,400..800",kaugummi:"Fredoka:wght@400..700&family=Nunito:wght@400;600;700",klartext:"Atkinson+Hyperlegible:wght@400;700"};
     (function(){var h=document.documentElement,t="moos";try{t=localStorage.getItem("theme")||"moos"}catch(e){}
     var d=t.indexOf("-")>0?t.split("-")[0]:"glas";if(!TB_FONTS[d]){d="glas";t="moos"}
     h.dataset.theme=t;h.dataset.design=d;h.dataset.page=location.hash.slice(1)||"heute";
@@ -178,7 +179,7 @@
           <span class="ico-wrap"><svg class="ico"><use href="#i-training"/></svg></span>
           <strong>Training</strong><span class="muted small" data-sum="training">noch nichts eingetragen</span>
         </a>
-        <a class="glass tile" href="#befinden" data-tile="befinden" style="--accent: var(--c4)">
+        <a class="glass tile" href="#befinden" data-tile="befinden" data-goto-ksub="befinden" style="--accent: var(--c4)">
           <span class="ico-wrap"><svg class="ico"><use href="#i-befinden" id="befinden-ico"/></svg></span>
           <strong>Befinden</strong><span class="muted small" data-sum="befinden">noch nichts eingetragen</span>
         </a>
@@ -216,11 +217,19 @@
     </section>
 
     <section class="view" data-view="befinden" hidden>
-      <div class="charts" data-charts="befinden"></div>
-      <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
-      <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
-      <h3 class="section-h">Befinden</h3>
-      <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
+      <div class="chips" role="tablist" aria-label="Körper oder Befinden">
+        <button type="button" class="chip" data-ksub="koerper">Körperwerte</button>
+        <button type="button" class="chip" data-ksub="befinden">Befinden</button>
+      </div>
+      <div data-ksub-box="koerper">
+        <div class="charts" data-charts="befinden"></div>
+        <details class="fold"><summary class="section-h">Deine Messungen <span aria-hidden="true">⌄</span></summary>
+        <div class="entries" data-list="koerper" style="--accent: var(--c2)"></div></details>
+      </div>
+      <div data-ksub-box="befinden" hidden>
+        <div class="glass c-card b-now" data-bnow></div>
+        <div class="entries" data-list="befinden" style="--accent: var(--c4)"></div>
+      </div>
     </section>
   </main>
 
@@ -237,6 +246,7 @@
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="ex-icons.js"></script>
   <script src="charts.js"></script>
   <script src="zyklus.js"></script>
   <script src="plan.js"></script>

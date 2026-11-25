@@ -173,8 +173,8 @@ const EMPTY_TEXT = {
   rad: "Noch keine Radfahrt eingetragen.",
   ernaehrung: "Heute noch nichts gegessen eingetragen.",
   zyklus: "Trag den Beginn deiner letzten Periode ein, dann siehst du auf „Heute“ deinen Zyklustag.",
-  befinden: "Hier trägst du ein, wenn du krank oder verletzt bist oder wie es dir geht.",
-  koerper: "Noch keine Messung eingetragen. Schick mir einfach einen Screenshot deiner Waage, ich sortiere dir die Werte.",
+  befinden: "Alles gut, nichts eingetragen.",
+  koerper: "Noch keine Messung eingetragen.",
 };
 
 // ---------- Verbindung ----------
@@ -312,7 +312,39 @@ function renderAll() {
   renderToday();
   renderCharts();
   renderZyklus();
+  renderBnow();
 }
+
+// ---------- Befinden: „Wie geht's dir heute?“ mit einem Tipp (Usability 25.11.) ----------
+const B_OPT = [["gut", "Gut", "#i-gut"], ["krank", "Krank", "#i-krank"], ["verletzt", "Verletzt", "#i-verletzt"], ["erschoepft", "Erschöpft", "#i-erschoepft"]];
+function renderBnow() {
+  const box = $("[data-bnow]"); if (!box) return;
+  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const now = open[0] ? open[0].status : "gut";
+  box.innerHTML = `<h3 class="c-title">Wie geht's dir heute?</h3>
+    <div class="b-opts">${B_OPT.map(([k, l, ic]) => `<button type="button" class="b-opt${k === now ? " on" : ""}" data-bset="${k}" aria-pressed="${k === now}"><svg class="ico"><use href="${ic}"/></svg><span>${l}</span></button>`).join("")}</div>
+    ${open[0] ? `<p class="c-hint">${esc(TABLES.befinden.title(open[0]))} seit ${esc(fmtDate(open[0].datum_von))}</p>` : ""}`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-bset]"); if (!b || !db) return;
+  const want = b.dataset.bset, t = today();
+  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  if (open.some((r) => r.status === want)) return;
+  const y = isoDate(new Date(Date.now() - 864e5));
+  // Offene Einträge beenden: bei „Gut“ bis gestern, bei einem Wechsel bis heute
+  for (const r of open) {
+    const bis = want === "gut" ? (r.datum_von <= y ? y : r.datum_von) : t;
+    const { error } = await db.from("befinden").update({ datum_bis: bis }).eq("id", r.id);
+    if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
+  }
+  if (want !== "gut") {
+    const { error } = await db.from("befinden").insert({ datum_von: t, status: want });
+    if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
+  }
+  toast(want === "gut" ? "Schön, dass es dir gut geht ✓" : B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓");
+  await load("befinden");
+  renderAll();
+});
 
 function renderCharts() {
   if (!window.TBCharts) return;
@@ -366,21 +398,41 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
   const daySum = {};
   if (table === "ernaehrung") (cache.ernaehrung || []).forEach((r) => { const o = daySum[r.datum] || (daySum[r.datum] = { k: 0, p: 0 }); o.k += Number(r.kcal) || 0; o.p += Number(r.protein_g) || 0; });
   const sumTxt = (d) => daySum[d] ? `<span class="day-sum">${fmtNum(Math.round(daySum[d].k))} kcal · ${fmtNum(Math.round(daySum[d].p))} g Eiweiß</span>` : "";
-  el.innerHTML = items.map((it) => {
+  // Lange Listen: erst die letzten 7 Tage mit Einträgen, der Rest auf Knopfdruck
+  const days = [...new Set(items.map((it) => it.date))];
+  const cut = !showAll.has(table) && days.length > 7 ? days[6] : null;
+  const shown = cut ? items.filter((it) => it.date >= cut) : items;
+  el.innerHTML = shown.map((it) => {
     const head = it.date !== lastDate ? `<h3 class="day">${esc(fmtDate(it.date))}${sumTxt(it.date)}</h3>` : "";
     lastDate = it.date;
     return `${head}<button type="button" class="glass entry" data-edit="${table}" data-key="${esc(it.key)}">
       <span class="entry-main"><strong>${esc(it.title)}</strong>${it.sub ? `<span class="muted small">${esc(it.sub)}</span>` : ""}${it.note ? `<span class="note small">${esc(it.note)}</span>` : ""}</span>
       <span class="chev" aria-hidden="true">›</span></button>`;
-  }).join("");
+  }).join("") + (cut ? `<button type="button" class="btn ghost more-btn" data-more="${table}">Ältere Einträge (${days.length - 7} Tage) ⌄</button>` : "");
 }
+const showAll = new Set();
+document.addEventListener("click", (e) => {
+  const m = e.target.closest("[data-more]"); if (!m) return;
+  showAll.add(m.dataset.more); renderAll();
+});
 
 function renderTraining() {
-  $$(".chip").forEach((c) => c.classList.toggle("active", c.dataset.sport === sport));
+  $$(".chip[data-sport]").forEach((c) => c.classList.toggle("active", c.dataset.sport === sport));
   renderList($('[data-list="training"]'), "training", sport);
 }
 
-$$(".chip").forEach((c) => c.addEventListener("click", () => {
+// Körper-Seite: Körperwerte (Waage) und Befinden (krank, Energie) getrennt (Wunsch 24.11.)
+let ksub = (() => { try { return localStorage.getItem("ksub") || "koerper"; } catch { return "koerper"; } })();
+function renderKsub() {
+  $$(".chip[data-ksub]").forEach((c) => c.classList.toggle("active", c.dataset.ksub === ksub));
+  $$("[data-ksub-box]").forEach((b) => (b.hidden = b.dataset.ksubBox !== ksub));
+}
+function setKsub(v) { ksub = v; try { localStorage.setItem("ksub", v); } catch {} renderKsub(); }
+$$(".chip[data-ksub]").forEach((c) => c.addEventListener("click", () => { setKsub(c.dataset.ksub); renderCharts(); }));
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-goto-ksub]"); if (t) setKsub(t.dataset.gotoKsub); });
+renderKsub();
+
+$$(".chip[data-sport]").forEach((c) => c.addEventListener("click", () => {
   sport = c.dataset.sport;
   try { localStorage.setItem("sport", sport); } catch {}
   renderTraining();
@@ -652,7 +704,10 @@ function openPicker(tables = Object.keys(TABLES)) {
   $("#entry-fields").innerHTML = "";
   $("#entry-msg").textContent = "";
   const p = $("#entry-picker");
-  p.innerHTML = tables.map((k) => [k, TABLES[k]]).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${t.label}</button>`).join("");
+  // Zuletzt benutzte Bereiche zuerst (Usability 25.11.)
+  const lastUse = (k) => (cache[k] || []).reduce((m, r) => (String(r.created_at || "") > m ? String(r.created_at) : m), "");
+  const order = tables.slice().sort((a, b) => lastUse(b).localeCompare(lastUse(a)));
+  p.innerHTML = order.map((k) => [k, TABLES[k]]).map(([k, t]) => `<button type="button" class="glass pick" data-pick="${k}">${window.TBPickIcon ? window.TBPickIcon(k) : ""}<span>${t.label}</span></button>`).join("");
   p.hidden = false;
   $(".sheet-actions").hidden = true;
   dlg.showModal();
@@ -806,10 +861,24 @@ function openFormAm(table, datum) {
   if (f && datum) f.value = datum;
 }
 window.addEventListener("tb-add", (e) => openFormAm(e.detail.table, e.detail.datum));
+// Ein Antippen bei „Passt noch heute“: sofort speichern, ohne Formular
+window.addEventListener("tb-quickadd", async (e) => {
+  const { table, rec } = e.detail;
+  let { error } = await db.from(table).insert(rec);
+  if (error && /column|schema cache/i.test(error.message || "")) {
+    ["kh_g", "zucker_g", "fett_g", "fett_ges_g", "ballast_g"].forEach((k) => delete rec[k]);
+    ({ error } = await db.from(table).insert(rec));
+  }
+  if (error) { console.error(error); toast("Eintragen hat nicht geklappt."); return; }
+  toast(rec.lebensmittel + " eingetragen ✓");
+  await load(table);
+  renderAll();
+});
 
 $("#fab").addEventListener("click", () => {
   const view = (location.hash.replace("#", "") || "heute");
   if (view === "training") return openForm(sport);
+  if (view === "befinden") return openForm(ksub);
   if (view === "ernaehrung" && window.TBCharts && window.TBCharts.foodDay && window.TBCharts.foodDay()) return openFormAm("ernaehrung", window.TBCharts.foodDay());
   if (VIEW_TABLES[view] && VIEW_TABLES[view].length > 1) return openPicker(VIEW_TABLES[view]);
   if (VIEW_TABLES[view]) return openForm(VIEW_TABLES[view][0]);

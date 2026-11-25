@@ -1,0 +1,138 @@
+/* ==========================================================
+   Drei neue Designs (Wunsch 24.11.2026, 00:00): je eine ganz andere Zielgruppe
+   Kreide   – Kletter- und Boulderszene: Hallenwand, Kreide, Griffe und Routen-Tape
+   Kaugummi – Teenager: Sticker, Bonbonfarben, alles ein bisschen schief und weich
+   Klartext – Menschen ab 60 oder mit schwachen Augen: groß, kontrastreich, ruhig
+   ========================================================== */
+
+/* ---------- Farben ---------- */
+/* Kreide: --wall Wandfläche, --tape1..4 Routen-Tape (Griff-Farben) */
+[data-theme="kreide-halle"] { --page:#2a2e33; --card:#353a40; --panel:#30353a; --text:#f2f0ea; --muted:#a6a8a6; --w:242 240 234; --field:rgba(0,0,0,.22); --hi:#ffd23f; --on-hi:#1d2024; --tape1:#ffd23f; --tape2:#ff5d8f; --tape3:#3ddc97; --tape4:#4cc9f0; --c1:#ffd23f; --c2:#3ddc97; --c3:#ff5d8f; --c4:#4cc9f0; color-scheme: dark; }
+[data-theme="kreide-fels"]  { --page:#e8dcc7; --card:#f3ebdd; --panel:#f3ebdd; --text:#2f241a; --muted:#7d6c59; --w:47 36 26; --field:#fbf6ee; --hi:#b4532a; --on-hi:#fff8ee; --tape1:#b4532a; --tape2:#3f6e8c; --tape3:#6b7f3a; --tape4:#d79b2b; --c1:#b4532a; --c2:#6b7f3a; --c3:#a4485f; --c4:#3f6e8c; }
+[data-theme="kreide-kalk"]  { --page:#f4f4f1; --card:#ffffff; --panel:#ffffff; --text:#16181b; --muted:#6b6f75; --w:22 24 27; --field:#f7f7f5; --hi:#1c4fd6; --on-hi:#fff; --tape1:#1c4fd6; --tape2:#e5383b; --tape3:#14a44d; --tape4:#f2a900; --c1:#1c4fd6; --c2:#14a44d; --c3:#e5383b; --c4:#7b2cbf; }
+[data-theme="kreide-uv"]    { --page:#120f24; --card:#1c1836; --panel:#1a1632; --text:#efeaff; --muted:#9c94c4; --w:239 234 255; --field:rgba(0,0,0,.3); --hi:#c6ff3d; --on-hi:#120f24; --tape1:#c6ff3d; --tape2:#ff3df5; --tape3:#3dfff0; --tape4:#ff9a3d; --c1:#c6ff3d; --c2:#3dfff0; --c3:#ff3df5; --c4:#ff9a3d; color-scheme: dark; }
+
+/* Kaugummi: --ink Umriss, --s1..3 Sticker-Farben */
+[data-theme="kaugummi-bubble"] { --page:#ffe3f1; --card:#fff7fb; --panel:#fff7fb; --text:#3a1440; --muted:#8c5f8f; --w:58 20 64; --field:#fff; --ink:#3a1440; --hi:#ff4fa3; --on-hi:#fff; --s1:#ff9fd0; --s2:#b9a2ff; --s3:#8ff0d8; --c1:#ff4fa3; --c2:#24c8a6; --c3:#ff7a59; --c4:#8a63ff; }
+[data-theme="kaugummi-limo"]   { --page:#f6ffd6; --card:#fffff4; --panel:#fffff4; --text:#1f2d0a; --muted:#6a7a4c; --w:31 45 10; --field:#fff; --ink:#1f2d0a; --hi:#3fb618; --on-hi:#fff; --s1:#d4ff5c; --s2:#ffe25c; --s3:#7fe3ff; --c1:#3fb618; --c2:#00a3c7; --c3:#ff8a00; --c4:#9c4dff; }
+[data-theme="kaugummi-ozean"]  { --page:#dcf7ff; --card:#f5fdff; --panel:#f5fdff; --text:#0c2a4a; --muted:#56789a; --w:12 42 74; --field:#fff; --ink:#0c2a4a; --hi:#0a84ff; --on-hi:#fff; --s1:#7fe3ff; --s2:#ffd6a5; --s3:#c3b5ff; --c1:#0a84ff; --c2:#00b39f; --c3:#ff6b6b; --c4:#7a5cff; }
+[data-theme="kaugummi-party"]  { --page:#1b0f2e; --card:#2a1846; --panel:#24143d; --text:#fff0fb; --muted:#c3a6d9; --w:255 240 251; --field:rgba(0,0,0,.25); --ink:#ff4fd8; --hi:#ffe24f; --on-hi:#1b0f2e; --s1:#ff4fd8; --s2:#4fe3ff; --s3:#ffe24f; --c1:#ffe24f; --c2:#4fe3ff; --c3:#ff4fd8; --c4:#9dff4f; color-scheme: dark; }
+
+/* Klartext: hoher Kontrast, --line klare Ränder */
+[data-theme="klartext-hell"]     { --page:#ffffff; --card:#ffffff; --panel:#ffffff; --text:#000000; --muted:#3d3d3d; --w:0 0 0; --field:#fff; --line:#000; --hi:#0b3d91; --on-hi:#fff; --c1:#0b3d91; --c2:#1d6b2f; --c3:#a3123a; --c4:#6a2c91; }
+[data-theme="klartext-warm"]     { --page:#f6efe2; --card:#fffaf1; --panel:#fffaf1; --text:#1e1408; --muted:#4a3c2b; --w:30 20 8; --field:#fff; --line:#1e1408; --hi:#1f5a3a; --on-hi:#fff; --c1:#1f5a3a; --c2:#8a4b0f; --c3:#9b1c31; --c4:#2a4f8a; }
+[data-theme="klartext-kontrast"] { --page:#000000; --card:#000000; --panel:#000000; --text:#ffffff; --muted:#e0e0e0; --w:255 255 255; --field:#000; --line:#ffe600; --hi:#ffe600; --on-hi:#000; --c1:#ffe600; --c2:#5cff8a; --c3:#ff7a9c; --c4:#7ac4ff; color-scheme: dark; }
+[data-theme="klartext-dunkel"]   { --page:#1c1f24; --card:#262a30; --panel:#262a30; --text:#ffffff; --muted:#d0d4da; --w:255 255 255; --field:#14171b; --line:#9fb4cc; --hi:#8cc8ff; --on-hi:#0c1520; --c1:#8cc8ff; --c2:#8fe0a8; --c3:#ffa3b5; --c4:#d3b2ff; color-scheme: dark; }
+
+/* ---------- Kreide: Boulderhalle ---------- */
+[data-design="kreide"] { --serif: "Archivo", system-ui, sans-serif; --sans: "Archivo", system-ui, sans-serif; --radius: 10px; }
+/* Wand mit Kreidestaub und Schraubenlöchern im Raster */
+[data-design="kreide"] body {
+  background:
+    radial-gradient(circle at 50% 50%, rgb(var(--w) / .10) 0 1.6px, transparent 2.2px) 0 0 / 44px 44px,
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgb(var(--w) / .07), transparent 70%),
+    radial-gradient(ellipse 50% 30% at 10% 70%, rgb(var(--w) / .05), transparent 70%),
+    var(--page);
+  background-attachment: fixed;
+}
+[data-design="kreide"] .topbar h1 { font-stretch: 125%; font-weight: 800; letter-spacing: -.01em; line-height: 1; }
+[data-design="kreide"] .date { color: var(--muted); font-stretch: 100%; letter-spacing: .04em; }
+[data-design="kreide"] .c-title, [data-design="kreide"] .tile strong, [data-design="kreide"] .hero h2, [data-design="kreide"] .entry strong, [data-design="kreide"] .sheet h2 { font-stretch: 112%; font-weight: 700; letter-spacing: 0; }
+[data-design="kreide"] .tf-num { font-stretch: 125%; font-weight: 800; letter-spacing: -.02em; }
+/* Jede Karte trägt ein Stück Routen-Tape oben links, Farbe wechselt wie an der Wand */
+[data-design="kreide"] main .glass { position: relative; overflow: visible; }
+[data-design="kreide"] main .glass::before { content: ""; position: absolute; top: -5px; left: 18px; width: 34px; height: 11px; background: var(--tape1); border-radius: 1px; transform: rotate(-3deg); opacity: .95; box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+[data-design="kreide"] main .glass:nth-of-type(4n+2)::before { background: var(--tape2); transform: rotate(2deg); left: 26px; }
+[data-design="kreide"] main .glass:nth-of-type(4n+3)::before { background: var(--tape3); transform: rotate(-1deg); }
+[data-design="kreide"] main .glass:nth-of-type(4n)::before { background: var(--tape4); transform: rotate(3deg); left: 22px; }
+[data-design="kreide"] .entries .glass::before, [data-design="kreide"] .tabbar::before { display: none; }
+/* Kacheln wie Griffe: unregelmäßig runde Ecken */
+[data-design="kreide"] .tile { border-radius: 26px 12px 30px 14px; }
+[data-design="kreide"] .tile[data-tile="befinden"] { border-radius: 12px 28px 14px 32px; }
+[data-design="kreide"] .ico-wrap { border-radius: 46% 54% 42% 58% / 55% 45% 55% 45%; background: color-mix(in srgb, var(--tape2) 30%, transparent); }
+[data-design="kreide"] .tile[data-tile="training"] .ico-wrap { background: color-mix(in srgb, var(--tape1) 34%, transparent); }
+[data-design="kreide"] .tf-ring circle { stroke-linecap: butt; }
+[data-design="kreide"] .tf-ring-fg { stroke: var(--tape1); }
+[data-design="kreide"] .tf-ring.tri .tf-ring-p { stroke: var(--tape2); } [data-design="kreide"] .tf-li.p { background: var(--tape2); }
+[data-design="kreide"] .tf-ring.tri .tf-ring-b { stroke: var(--tape3); } [data-design="kreide"] .tf-li.b { background: var(--tape3); }
+[data-design="kreide"] .tf-li.k { background: var(--tape1); }
+[data-design="kreide"] .btn { border-radius: 6px; font-stretch: 112%; font-weight: 700; letter-spacing: .02em; }
+[data-design="kreide"] .fab { border-radius: 44% 56% 48% 52% / 52% 44% 56% 48%; background: var(--tape1); color: var(--on-hi); }
+[data-design="kreide"] .chip { border-radius: 4px; font-stretch: 110%; }
+[data-design="kreide"] .chip.active { background: var(--hi); color: var(--on-hi); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+/* Leiste: der aktive Bereich bekommt einen Kreidefleck und ein Stück Tape darunter */
+[data-design="kreide"] .tabbar { border-radius: 14px; }
+[data-design="kreide"] .tabbar a { position: relative; font-stretch: 105%; }
+[data-design="kreide"] .tabbar a.active { color: var(--text); }
+[data-design="kreide"] .tabbar a.active .ico { color: var(--hi); }
+[data-design="kreide"] .tabbar a.active::before { content: ""; position: absolute; z-index: -1; inset: 8px 14px 18px; background: radial-gradient(ellipse at 50% 45%, rgb(var(--w) / .2), transparent 70%); border-radius: 50%; }
+[data-design="kreide"] .tabbar a.active::after { content: ""; position: absolute; bottom: 7px; left: 50%; width: 24px; height: 5px; margin-left: -12px; background: var(--hi); transform: rotate(-2deg); border-radius: 1px; }
+[data-design="kreide"] .p-dots i { border-radius: 40% 60% 45% 55%; }
+[data-design="kreide"] .p-dots i.on { background: var(--tape3); border-color: transparent; }
+
+/* ---------- Kaugummi: Sticker für Teenager ---------- */
+[data-design="kaugummi"] { --serif: "Fredoka", system-ui, sans-serif; --sans: "Nunito", system-ui, sans-serif; --radius: 28px; --card-border: 2.5px solid var(--ink); --card-shadow: 0 5px 0 var(--ink); }
+[data-design="kaugummi"] body { background: radial-gradient(circle at 15% 8%, var(--s1) 0 70px, transparent 71px), radial-gradient(circle at 92% 30%, var(--s2) 0 46px, transparent 47px), radial-gradient(circle at 8% 62%, var(--s3) 0 34px, transparent 35px), var(--page); background-attachment: fixed; }
+[data-design="kaugummi"] .topbar h1 { font-weight: 700; letter-spacing: -.01em; line-height: 1; }
+[data-design="kaugummi"] .date { color: var(--hi); font-family: var(--serif); font-weight: 600; letter-spacing: .02em; }
+[data-design="kaugummi"] .c-title, [data-design="kaugummi"] .tile strong, [data-design="kaugummi"] .hero h2, [data-design="kaugummi"] .entry strong, [data-design="kaugummi"] .sheet h2 { font-weight: 600; }
+[data-design="kaugummi"] .tf-num { font-weight: 700; }
+/* Kacheln wie aufgeklebte Sticker: leicht schief */
+[data-design="kaugummi"] .tile[data-tile="training"] { background: var(--s1); transform: rotate(-1.6deg); }
+[data-design="kaugummi"] .tile[data-tile="befinden"] { background: var(--s3); transform: rotate(1.4deg); }
+[data-design="kaugummi"] .tile { color: #2a0f2e; --text: #2a0f2e; --muted: rgba(42,15,46,.72); --accent: #2a0f2e; }
+[data-design="kaugummi"] .today-food { background: linear-gradient(160deg, var(--card) 55%, color-mix(in srgb, var(--s2) 45%, var(--card))); }
+[data-design="kaugummi"] .ico-wrap { background: #fff; border: 2px solid var(--ink); border-radius: 50%; }
+[data-design="kaugummi"] .ico-wrap .ico { color: var(--ink); }
+[data-design="kaugummi"] .tf-ring circle { stroke-width: 13; }
+[data-design="kaugummi"] .tf-ring-fg { stroke: var(--hi); }
+[data-design="kaugummi"] .btn { border-radius: 999px; border: 2.5px solid var(--ink); box-shadow: 0 4px 0 var(--ink); font-family: var(--serif); font-weight: 600; }
+[data-design="kaugummi"] .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+[data-design="kaugummi"] .fab { border: 2.5px solid var(--ink); box-shadow: 0 5px 0 var(--ink); background: var(--hi); color: var(--on-hi); }
+[data-design="kaugummi"] .chip { border: 2px solid var(--ink); font-family: var(--serif); font-weight: 600; }
+[data-design="kaugummi"] .chip.active { background: var(--hi); color: var(--on-hi); box-shadow: 0 3px 0 var(--ink); }
+[data-design="kaugummi"] .tabbar { border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 0 5px 0 var(--ink); }
+[data-design="kaugummi"] .tabbar a { position: relative; z-index: 0; font-family: var(--serif); font-weight: 500; }
+[data-design="kaugummi"] .tabbar a.active { color: var(--text); font-weight: 700; }
+[data-design="kaugummi"] .tabbar a.active .ico { color: #2a0f2e; transform: translateY(-2px); }
+[data-design="kaugummi"] .tabbar a.active { padding-top: 2px; }
+[data-design="kaugummi"] .tabbar a.active::before { content: ""; position: absolute; z-index: -1; top: 9px; left: 50%; width: 48px; height: 30px; margin-left: -24px; background: var(--s1); border-radius: 999px; border: 2px solid var(--ink); }
+[data-design="kaugummi"] .tabbar a.active:nth-child(2n)::before { background: var(--s3); }
+[data-design="kaugummi"] .tabbar a.active:nth-child(3)::before { background: var(--s2); }
+[data-design="kaugummi"] .field input, [data-design="kaugummi"] .field select, [data-design="kaugummi"] .field textarea { border: 2px solid var(--ink); border-radius: 16px; box-shadow: none; }
+[data-design="kaugummi"] .p-dots i { border: 2px solid var(--ink); }
+[data-design="kaugummi"] .p-dots i.on { background: var(--hi); }
+[data-design="kaugummi"] .entries .entry { box-shadow: 0 3px 0 var(--ink); border-width: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-design="kaugummi"] .fab:active { transform: scale(.92) rotate(-8deg); }
+}
+
+/* ---------- Klartext: groß, klar, kontrastreich ---------- */
+[data-design="klartext"] { --serif: "Atkinson Hyperlegible", system-ui, sans-serif; --sans: "Atkinson Hyperlegible", system-ui, sans-serif; --radius: 12px; --card-border: 2px solid var(--line); --tabbar-h: 84px; }
+[data-design="klartext"] body { font-size: 19px; line-height: 1.5; }
+[data-design="klartext"] .topbar h1 { font-weight: 700; font-size: 2.1rem; letter-spacing: 0; line-height: 1.15; }
+[data-design="klartext"] .date { color: var(--text); font-weight: 700; letter-spacing: 0; text-transform: none; font-size: 1rem; }
+[data-design="klartext"] .c-title, [data-design="klartext"] .tile strong, [data-design="klartext"] .hero h2, [data-design="klartext"] .entry strong, [data-design="klartext"] .sheet h2 { font-weight: 700; letter-spacing: 0; }
+[data-design="klartext"] .eyebrow, [data-design="klartext"] .t-label, [data-design="klartext"] .section-h, [data-design="klartext"] .day, [data-design="klartext"] .zu-k, [data-design="klartext"] .supp-when { text-transform: none; letter-spacing: 0; font-size: .95rem; font-weight: 700; color: var(--text); }
+[data-design="klartext"] .muted, [data-design="klartext"] .small, [data-design="klartext"] .c-note, [data-design="klartext"] .c-hint, [data-design="klartext"] .tabbar a { font-size: max(.9rem, 16px); }
+[data-design="klartext"] .muted, [data-design="klartext"] .c-note, [data-design="klartext"] .c-hint { color: var(--muted); }
+[data-design="klartext"] .c-axis { font-size: 13px; }
+/* Klare Zustände statt Farbe allein: aktiv = gefüllt und unterstrichen */
+[data-design="klartext"] .btn { border-radius: 10px; min-height: 52px; font-weight: 700; font-size: 1.05rem; border: 2px solid var(--line); }
+[data-design="klartext"] .btn.ghost { background: var(--card); color: var(--text); }
+[data-design="klartext"] .chip { min-height: 48px; padding: 0 18px; border: 2px solid var(--line); border-radius: 10px; font-weight: 700; color: var(--text); background: var(--card); }
+[data-design="klartext"] .chip.active { background: var(--hi); color: var(--on-hi); border-color: var(--hi); text-decoration: underline; text-underline-offset: 4px; }
+[data-design="klartext"] .fab { width: 68px; height: 68px; font-size: 2.2rem; border: 3px solid var(--line); }
+[data-design="klartext"] .tabbar { border: 2px solid var(--line); border-radius: 14px; box-shadow: none; left: 8px; right: 8px; }
+[data-design="klartext"] .tabbar a { font-weight: 700; color: var(--text); }
+[data-design="klartext"] .tabbar .ico { width: 28px; height: 28px; color: var(--text); }
+[data-design="klartext"] .tabbar a.active { background: var(--hi); color: var(--on-hi); border-radius: 10px; margin: 6px 3px; }
+[data-design="klartext"] .tabbar a.active .ico { color: var(--on-hi); }
+[data-design="klartext"] .ico-wrap { background: transparent; border: 2px solid var(--line); }
+[data-design="klartext"] .ico-wrap .ico { color: var(--text); }
+[data-design="klartext"] .field input, [data-design="klartext"] .field select, [data-design="klartext"] .field textarea { border: 2px solid var(--line); border-radius: 8px; font-size: 1.1rem; min-height: 52px; box-shadow: none; }
+[data-design="klartext"] .entries .entry { min-height: 64px; }
+[data-design="klartext"] .tile[data-tile] { border-width: 2px; }
+[data-design="klartext"] :focus-visible { outline: 4px solid var(--hi); outline-offset: 3px; }
+[data-design="klartext"] .k-i, [data-design="klartext"] .zu-bulb { width: 40px; height: 40px; font-size: 1rem; }
+[data-design="klartext"] .bgfx { display: none; }

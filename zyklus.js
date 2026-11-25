@@ -40,7 +40,7 @@
     box.replaceChildren();
     const top = el(`<div class="charts z-top"></div>`);
     if (window.TBCharts.zyklusTop) window.TBCharts.zyklusTop(top, c.cache);
-    box.append(ring(phasen, phaseOn, t), top, kalender(phasen, phaseOn, tags, t), check(tags, phaseOn), auswertung(phasen, t), symptomeJePhase(tags, phaseOn));
+    box.append(...[ring(phasen, phaseOn, t), top, kalender(phasen, phaseOn, tags, t), check(tags, phaseOn), auswertung(phasen, t), symptomeJePhase(tags, phaseOn)].filter(Boolean));
   }
 
   const el = (html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; };
@@ -178,9 +178,9 @@
       const top = [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([s, n]) => `${esc(s)} <span class="muted">${n}×</span>`).join(", ");
       return `<tr><td><i style="background:${BANDC[ph]}"></i>${ph}</td><td>${top || '<span class="muted">–</span>'}</td></tr>`;
     }).join("");
+    if (!any) return null; // erst zeigen, wenn es etwas zu sehen gibt
     return el(`<div class="glass c-card">
       <h3 class="c-title">Was in welcher Phase auftaucht</h3>
-      ${any ? "" : `<p class="c-note">Noch leer.</p>`}
       <table class="c-table z-table">${rows}</table>
     </div>`);
   }

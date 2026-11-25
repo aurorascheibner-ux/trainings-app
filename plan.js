@@ -44,7 +44,7 @@
   // Ziel für eine Übung aus dem letzten Training
   function target(ex, kraft, hold) {
     const rows = kraft.filter((r) => r.uebung === ex.u);
-    if (!rows.length) return { w: ex.bw ? null : ex.start, aim: ex.lo, info: "Noch nicht eingetragen, Startwert." };
+    if (!rows.length) return { w: ex.bw ? null : ex.start, aim: ex.lo, info: "Startwert" };
     const d = rows.reduce((m, r) => (r.datum > m ? r.datum : m), "");
     const sets = rows.filter((r) => r.datum === d).sort((a, b) => (a.satz ?? 0) - (b.satz ?? 0));
     const reps = (r) => Number(r.wdh) || 0, wt = (r) => Number(r.gewicht_kg) || 0;
@@ -97,7 +97,7 @@
       const goal = `${ex.side ? "3 × " + g.aim + " pro Seite" : "3 × " + g.aim}${g.w != null ? " · " + kg(ex, g.w) : ""}`;
       const tag = g.up ? `<span class="p-up">${g.w != null ? "↑ 5 kg mehr" : "↑ schaffst du"}</span>` : "";
       const sub = [g.info, g.upText, g.holdText, ex.hint].filter(Boolean).join(" ");
-      return { ex, g, html: `<div class="p-row"><div class="p-top"><b>${esc(ex.u)}</b>${tag}</div><div class="p-goal">${esc(goal)}</div><div class="p-sub">${esc(sub)}</div></div>` };
+      return { ex, g, html: `<div class="p-row"><div class="p-top"><span class="p-name">${window.TBExIcon ? window.TBExIcon(ex.u) : ""}<b>${esc(ex.u)}</b></span>${tag}</div><div class="p-goal">${esc(goal)}</div><div class="p-sub">${esc(sub)}</div></div>` };
     });
     c.insertAdjacentHTML("beforeend", `
       <div class="p-week">Krafttraining diese Woche ${dots(n, KRAFT_PRO_WOCHE)} <span>${n} von ${KRAFT_PRO_WOCHE}</span></div>
