@@ -943,3 +943,6 @@ button.bz-d { cursor: pointer; }
 .b-row { border-left: 5px solid var(--bc); }
 .b-row.b-open { background: color-mix(in srgb, var(--bc) 14%, transparent); }
 [data-ksub-box="befinden"] .section-h { margin-top: 18px; }
+/* Phasen-Kacheln in der Farbe ihres Zustands, in jedem Design (Wunsch 27.11.) */
+html[data-design] .glass.entry.b-row, html .glass.entry.b-row { background: color-mix(in srgb, var(--bc) 20%, var(--panel, transparent)); border-left: 6px solid var(--bc); }
+html[data-design] .glass.entry.b-row.b-open, html .glass.entry.b-row.b-open { background: color-mix(in srgb, var(--bc) 36%, var(--panel, transparent)); }

@@ -443,7 +443,7 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
     el.innerHTML = `<h3 class="section-h">Alle Phasen</h3>` + rs.map((r) => {
       const bis = r.datum_bis || today(), n = daysBetween(r.datum_von, bis) + 1;
       const zeit = r.datum_bis ? `${spanTxt(r.datum_von, r.datum_bis)} · ${n} ${n === 1 ? "Tag" : "Tage"}` : `seit ${dm(r.datum_von)} · ${n} ${n === 1 ? "Tag" : "Tage"}`;
-      return `<button type="button" class="glass entry b-row${r.datum_bis ? "" : " b-open"}" data-edit="befinden" data-key="${esc(r.id)}" style="--bc:${B_COL[r.status] || "var(--muted)"}">
+      return `<button type="button" class="glass entry b-row${!r.datum_bis || r.datum_bis >= today() ? " b-open" : ""}" data-edit="befinden" data-key="${esc(r.id)}" style="--bc:${B_COL[r.status] || "var(--muted)"}">
         <span class="entry-main"><strong>${esc(TABLES.befinden.title(r))}</strong><span class="muted small">${esc(zeit)}${r.energie_1_5 ? " · Energie " + r.energie_1_5 + "/5" : ""}</span>${r.notiz ? `<span class="note small">${esc(r.notiz)}</span>` : ""}</span>
         ${CHEV()}</button>`;
     }).join("");
