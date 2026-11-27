@@ -929,3 +929,17 @@ details.i-box .k-r { color: var(--muted); }
 
 /* Werte über den Punkten (Körper) */
 .c-val { font-size: 10.5px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--card, #000); stroke-width: 3px; stroke-linejoin: round; }
+
+/* ---------- Befinden übersichtlicher (27.11.) ---------- */
+.b-zeit { margin-bottom: 14px; }
+.bz-grid { display: grid; grid-template-columns: 44px repeat(7, 1fr); gap: 5px; margin-top: 10px; align-items: center; }
+.bz-h { text-align: center; font-size: .72rem; font-weight: 700; color: var(--muted); }
+.bz-w { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bz-d { display: block; aspect-ratio: 1; min-height: 26px; border-radius: 7px; background: rgb(var(--w) / .07); border: 0; padding: 0; font: inherit; }
+button.bz-d { cursor: pointer; }
+.bz-d.fut { background: transparent; border: 1px dashed rgb(var(--w) / .12); }
+.bz-d.heute { box-shadow: 0 0 0 2px var(--text); }
+.bz-leg { margin-top: 12px; }
+.b-row { border-left: 5px solid var(--bc); }
+.b-row.b-open { background: color-mix(in srgb, var(--bc) 14%, transparent); }
+[data-ksub-box="befinden"] .section-h { margin-top: 18px; }
