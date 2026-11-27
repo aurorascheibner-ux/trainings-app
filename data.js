@@ -353,9 +353,11 @@ function renderBzeit() {
     <div class="c-legend bz-leg"><span class="muted">Letzte 8 Wochen:</span>${sum || `<span>alles gut</span>`}</div>
     <div class="bz-grid"><span></span>${["M", "D", "M", "D", "F", "S", "S"].map((x) => `<span class="bz-h">${x}</span>`).join("")}${rows}</div>`;
 }
+// aktiv = offen oder endet erst heute oder später (sonst ließ „Gut“ solche Einträge stehen, 27.11.)
+const bActive = () => { const t = today(); return (cache.befinden || []).filter((r) => r.status !== "gut" && (!r.datum_bis || r.datum_bis >= t)); };
 function renderBnow() {
   const box = $("[data-bnow]"); if (!box) return;
-  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const open = bActive();
   // Mehrere Zustände gleichzeitig möglich (27.11.): jeder Knopf schaltet seinen Zustand an oder aus
   const on = (k) => (k === "gut" ? !open.length : open.some((r) => r.status === k));
   box.innerHTML = `<h3 class="c-title">Wie geht's dir heute?</h3>
@@ -365,7 +367,7 @@ function renderBnow() {
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-bset]"); if (!b || !db) return;
   const want = b.dataset.bset, t = today();
-  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const open = bActive();
   const y = isoDate(new Date(Date.now() - 864e5));
   // An/aus je Zustand (27.11.), ohne Schnipsel: heute begonnen → löschen, älter → endet gestern;
   // ein gerade erst beendeter gleicher Zustand läuft einfach weiter
@@ -375,7 +377,7 @@ document.addEventListener("click", async (e) => {
   if (want === "gut") { if (!open.length) return; qs = open.map(stop); msg = "Schön, dass es dir gut geht ✓"; }
   else if (mine.length) { qs = mine.map(stop); msg = B_OPT.find((o) => o[0] === want)[1] + " beendet ✓"; }
   else {
-    const prev = (cache.befinden || []).find((r) => r.status === want && (r.datum_bis === y || r.datum_bis === t));
+    const prev = (cache.befinden || []).find((r) => r.status === want && r.datum_bis === y);
     qs = [prev ? db.from("befinden").update({ datum_bis: null }).eq("id", prev.id) : db.from("befinden").insert({ datum_von: t, status: want })];
     msg = B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓";
   }
