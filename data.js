@@ -313,10 +313,40 @@ function renderAll() {
   renderCharts();
   renderZyklus();
   renderBnow();
+  renderBzeit();
 }
 
 // ---------- Befinden: „Wie geht's dir heute?“ mit einem Tipp (Usability 25.11.) ----------
 const B_OPT = [["gut", "Gut", "#i-gut"], ["krank", "Krank", "#i-krank"], ["verletzt", "Verletzt", "#i-verletzt"], ["erschoepft", "Erschöpft", "#i-erschoepft"]];
+const B_COL = { krank: "#e5484d", verletzt: "#f0883e", erschoepft: "#8b7fd6" };
+const dm = (s) => { const [, m, d] = String(s).split("-"); return `${+d}.${+m}.`; };
+const spanTxt = (a, b) => { if (a === b) return dm(a); const [, ma] = a.split("-"), [, mb] = b.split("-"); return ma === mb ? `${+a.slice(8)}.–${dm(b)}` : `${dm(a)}–${dm(b)}`; };
+// Zeitstrahl: die letzten 8 Wochen als Kalender, jeder Tag in der Farbe seines Zustands (Wunsch 27.11.)
+function renderBzeit() {
+  const box = $("[data-bzeit]"); if (!box) return;
+  const rs = (cache.befinden || []).filter((r) => r.status !== "gut" && r.datum_von);
+  const t = today(), now = new Date(t + "T12:00:00");
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7) - 7 * 7);
+  const cnt = {};
+  let rows = "";
+  for (let w = 0; w < 8; w++) {
+    const ws = new Date(mon); ws.setDate(mon.getDate() + 7 * w);
+    let cells = "";
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(ws); day.setDate(ws.getDate() + d); const iso = isoDate(day);
+      const hit = rs.filter((r) => r.datum_von <= iso && iso <= (r.datum_bis || t));
+      const fut = iso > t;
+      if (!fut) hit.forEach((r) => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
+      const bg = hit.length === 1 ? B_COL[hit[0].status] : hit.length > 1 ? `linear-gradient(135deg, ${B_COL[hit[0].status]} 50%, ${B_COL[hit[1].status]} 50%)` : "";
+      cells += `<${hit.length && !fut ? `button type="button" data-edit="befinden" data-key="${esc(hit[0].id)}" aria-label="${esc(fmtDate(iso))}: ${esc(hit.map((r) => TABLES.befinden.title(r)).join(", "))}"` : "span"} class="bz-d${iso === t ? " heute" : ""}${fut ? " fut" : ""}"${bg && !fut ? ` style="background:${bg}"` : ""}></${hit.length && !fut ? "button" : "span"}>`;
+    }
+    rows += `<span class="bz-w">${dm(isoDate(ws))}</span>${cells}`;
+  }
+  const sum = Object.keys(B_COL).filter((k) => cnt[k]).map((k) => `<span><i style="background:${B_COL[k]}"></i>${TABLES.befinden.title({ status: k })} ${cnt[k]} ${cnt[k] === 1 ? "Tag" : "Tage"}</span>`).join("");
+  box.innerHTML = `<h3 class="c-title">Letzte 8 Wochen</h3>
+    <div class="bz-grid"><span></span>${["M", "D", "M", "D", "F", "S", "S"].map((x) => `<span class="bz-h">${x}</span>`).join("")}${rows}</div>
+    <div class="c-legend bz-leg">${sum || `<span>Alles gut in den letzten 8 Wochen</span>`}</div>`;
+}
 function renderBnow() {
   const box = $("[data-bnow]"); if (!box) return;
   const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
@@ -331,13 +361,18 @@ document.addEventListener("click", async (e) => {
   const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
   if (open.some((r) => r.status === want)) return;
   const y = isoDate(new Date(Date.now() - 864e5));
-  // Offene Einträge beenden: bei „Gut“ bis gestern, bei einem Wechsel bis heute
+  // Mehrmals am selben Tag tippen erzeugt keine Schnipsel (Wunsch 27.11.):
+  // ein heute begonnener Eintrag wird geändert („Gut“ nimmt ihn zurück), ältere enden gestern
+  let done = false;
   for (const r of open) {
-    const bis = want === "gut" ? (r.datum_von <= y ? y : r.datum_von) : t;
-    const { error } = await db.from("befinden").update({ datum_bis: bis }).eq("id", r.id);
+    let q;
+    if (r.datum_von === t && want !== "gut" && !done) { q = db.from("befinden").update({ status: want }).eq("id", r.id); done = true; }
+    else if (r.datum_von === t) q = db.from("befinden").delete().eq("id", r.id);
+    else q = db.from("befinden").update({ datum_bis: y }).eq("id", r.id);
+    const { error } = await q;
     if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
   }
-  if (want !== "gut") {
+  if (want !== "gut" && !done) {
     const { error } = await db.from("befinden").insert({ datum_von: t, status: want });
     if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
   }
@@ -391,6 +426,18 @@ function renderList(el, view, table = VIEW_TABLES[view][0]) {
   const items = itemsFor(table);
   if (!items.length) {
     el.innerHTML = `<div class="glass empty"><p class="muted">${EMPTY_TEXT[table]}</p><button type="button" class="btn small-btn" data-add="${table}">+ Eintragen</button></div>`;
+    return;
+  }
+  // Befinden: eine Zeile je Phase, ohne Datumsüberschriften (Wunsch 27.11.)
+  if (table === "befinden") {
+    const rs = (cache.befinden || []).filter((r) => r.status !== "gut").slice().sort((a, b) => String(b.datum_von).localeCompare(String(a.datum_von)));
+    el.innerHTML = `<h3 class="section-h">Alle Phasen</h3>` + rs.map((r) => {
+      const bis = r.datum_bis || today(), n = daysBetween(r.datum_von, bis) + 1;
+      const zeit = r.datum_bis ? `${spanTxt(r.datum_von, r.datum_bis)} · ${n} ${n === 1 ? "Tag" : "Tage"}` : `seit ${dm(r.datum_von)} · ${n} ${n === 1 ? "Tag" : "Tage"}`;
+      return `<button type="button" class="glass entry b-row${r.datum_bis ? "" : " b-open"}" data-edit="befinden" data-key="${esc(r.id)}" style="--bc:${B_COL[r.status] || "var(--muted)"}">
+        <span class="entry-main"><strong>${esc(TABLES.befinden.title(r))}</strong><span class="muted small">${esc(zeit)}${r.energie_1_5 ? " · Energie " + r.energie_1_5 + "/5" : ""}</span>${r.notiz ? `<span class="note small">${esc(r.notiz)}</span>` : ""}</span>
+        ${CHEV()}</button>`;
+    }).join("");
     return;
   }
   let lastDate = null;
