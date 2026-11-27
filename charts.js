@@ -642,9 +642,7 @@
     if (isToday && (ohne || (eat.length && !ok && !op))) body.appendChild(E("p", "c-hint", (eat.length && !ok && !op ? "Ziel für heute erreicht ✓" : "") + ohne));
     else {
       if (!eat.length || ohne) body.appendChild(E("p", "c-hint", (eat.length ? "" : "An diesem Tag ist nichts eingetragen.") + ohne));
-      const add = E("button", "btn small-btn wide-btn", isToday ? "Ernährung eintragen" : "Ernährung für " + (tagName(ti) === "Gestern" ? "gestern" : tagName(ti)) + " eintragen"); add.type = "button";
-      add.addEventListener("click", () => window.dispatchEvent(new CustomEvent("tb-add", { detail: { table: "ernaehrung", datum: ti } })));
-      body.appendChild(add);
+      // kein eigener „Ernährung eintragen“-Knopf mehr: das + unten trägt für den gewählten Tag ein (27.11.)
     }
     const ret = isToday ? { kcal: base.kcal - kc, p: base.p - pr, b: fibMin - sum("ballast_g"), heute: eat } : null;
     const wg = letzteWaage();

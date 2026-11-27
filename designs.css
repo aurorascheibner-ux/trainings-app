@@ -235,3 +235,29 @@
 [data-design="terminal"] .fold-row { font-family: var(--sans); font-weight: 500; }
 [data-design="terminal"] .entry .chv { stroke: var(--text); }
 [data-design="terminal"] .glass.entry { border-left: 2px solid var(--muted); }
+
+/* ---------- Beton-Feinschliff (27.11., Design- und Bedien-Durchsicht) ---------- */
+/* 1 alles eckig, innere Kärtchen mit schwarzem Rand */
+[data-design="beton"] *:not(svg):not(svg *) { border-radius: 0 !important; }
+[data-design="beton"] .b-opt, [data-design="beton"] .k-b3, [data-design="beton"] .zf-tile, [data-design="beton"] .opt, [data-design="beton"] .i-btn, [data-design="beton"] .k-i, [data-design="beton"] .zu-bulb, [data-design="beton"] .icon-btn.nav-rund, [data-design="beton"] .sheet .icon-btn { border: 2px solid var(--ink); box-shadow: none; }
+[data-design="beton"] .b-opt.on, [data-design="beton"] .k-b3.on { box-shadow: 3px 3px 0 var(--ink); }
+[data-design="beton"] .v-add { background: var(--ink); color: var(--card); }
+[data-design="beton"] .n-track, [data-design="beton"] .z-bar-t { border: 2px solid var(--ink); background: var(--card); }
+[data-design="beton"] .z-day.today { outline: 3px solid var(--ink); outline-offset: -3px; }
+/* 2 Phasen-Legende flach: feste Leiste ohne Glas und Schatten */
+[data-design="beton"] .phase-strip { background: var(--page); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; border: 2px solid var(--ink); }
+/* 3 Grafiken: eckige Balken, schwarze Achsen */
+[data-design="beton"] svg rect { rx: 0; ry: 0; }
+[data-design="beton"] .c-axis { fill: var(--text); font-weight: 600; }
+[data-design="beton"] .c-grid { stroke: rgb(var(--w) / .22); }
+[data-design="beton"] .domain, [data-design="beton"] .tick line { stroke: var(--ink); }
+/* 4 Schreibmaschine nur noch für Datum und Zahlen-Etiketten */
+[data-design="beton"] .eyebrow, [data-design="beton"] .t-label, [data-design="beton"] .supp-when, [data-design="beton"] .c-lbl, [data-design="beton"] .tf-sub { font-family: var(--sans); }
+[data-design="beton"] .section-h { font-family: var(--sans); font-weight: 700; text-transform: uppercase; letter-spacing: -.02em; font-size: 1.15rem; }
+/* 5 grauer Text kräftiger, auf farbigen Kacheln fast schwarz */
+[data-theme="beton-signal"], [data-theme="beton-pink"] { --muted: #3b3b3b; }
+[data-design="beton"] .today-food, [data-design="beton"] .tile, [data-design="beton"] .hero { --muted: rgba(0,0,0,.78); }
+/* 8 Leiste unten: größere Schrift, aktiver Reiter als gelber Block */
+[data-design="beton"] .tabbar a { font-family: var(--sans); font-size: .74rem; font-weight: 700; margin: 4px 2px; }
+[data-design="beton"] .tabbar a.active { background: var(--t3); color: #000; }
+[data-design="beton"] .tabbar a.active .ico { color: #000; --fill: transparent; }

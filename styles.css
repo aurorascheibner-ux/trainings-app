@@ -60,7 +60,7 @@ body {
   font-family: var(--sans);
   line-height: 1.45;
   min-height: 100dvh;
-  padding: env(safe-area-inset-top) 18px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 28px);
+  padding: env(safe-area-inset-top) 18px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 100px); /* Platz fürs +, damit es nichts verdeckt (27.11.) */
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
 }
