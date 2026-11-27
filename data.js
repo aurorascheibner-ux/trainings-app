@@ -334,10 +334,13 @@ function renderBzeit() {
     let cells = "";
     for (let d = 0; d < 7; d++) {
       const day = new Date(ws); day.setDate(ws.getDate() + d); const iso = isoDate(day);
-      const hit = rs.filter((r) => r.datum_von <= iso && iso <= (r.datum_bis || t));
+      const hit = rs.filter((r) => r.datum_von <= iso && iso <= (r.datum_bis || t))
+        .filter((r, i, a) => a.findIndex((x) => x.status === r.status) === i)
+        .sort((a, b) => Object.keys(B_COL).indexOf(a.status) - Object.keys(B_COL).indexOf(b.status));
       const fut = iso > t;
       if (!fut) hit.forEach((r) => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
-      const bg = hit.length === 1 ? B_COL[hit[0].status] : hit.length > 1 ? `linear-gradient(135deg, ${B_COL[hit[0].status]} 50%, ${B_COL[hit[1].status]} 50%)` : "";
+      // mehrere Zustände am selben Tag: gleich breite schräge Streifen, beliebig viele (Wunsch 27.11.)
+      const bg = hit.length === 1 ? B_COL[hit[0].status] : hit.length > 1 ? `linear-gradient(135deg, ${hit.map((r, i) => `${B_COL[r.status]} ${(i * 100 / hit.length).toFixed(1)}% ${((i + 1) * 100 / hit.length).toFixed(1)}%`).join(", ")})` : "";
       cells += `<${hit.length && !fut ? `button type="button" data-edit="befinden" data-key="${esc(hit[0].id)}" aria-label="${esc(fmtDate(iso))}: ${esc(hit.map((r) => TABLES.befinden.title(r)).join(", "))}"` : "span"} class="bz-d${iso === t ? " heute" : ""}${fut ? " fut" : ""}"${bg && !fut ? ` style="background:${bg}"` : ""}></${hit.length && !fut ? "button" : "span"}>`;
     }
     rows += `<span class="bz-w">${dm(isoDate(ws))}</span>${cells}`;
@@ -350,33 +353,34 @@ function renderBzeit() {
 function renderBnow() {
   const box = $("[data-bnow]"); if (!box) return;
   const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
-  const now = open[0] ? open[0].status : "gut";
+  // Mehrere Zustände gleichzeitig möglich (27.11.): jeder Knopf schaltet seinen Zustand an oder aus
+  const on = (k) => (k === "gut" ? !open.length : open.some((r) => r.status === k));
   box.innerHTML = `<h3 class="c-title">Wie geht's dir heute?</h3>
-    <div class="b-opts">${B_OPT.map(([k, l, ic]) => `<button type="button" class="b-opt${k === now ? " on" : ""}" data-bset="${k}" aria-pressed="${k === now}"><svg class="ico"><use href="${ic}"/></svg><span>${l}</span></button>`).join("")}</div>
-    ${open[0] ? `<p class="c-hint">${esc(TABLES.befinden.title(open[0]))} seit ${esc(fmtDate(open[0].datum_von))}</p>` : ""}`;
+    <div class="b-opts">${B_OPT.map(([k, l, ic]) => `<button type="button" class="b-opt${on(k) ? " on" : ""}" data-bset="${k}" aria-pressed="${on(k)}"><svg class="ico"><use href="${ic}"/></svg><span>${l}</span></button>`).join("")}</div>
+    ${open.length ? `<p class="c-hint">${open.map((r) => `${esc(TABLES.befinden.title(r))} seit ${esc(dm(r.datum_von))}`).join(" · ")}</p>` : ""}`;
 }
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-bset]"); if (!b || !db) return;
   const want = b.dataset.bset, t = today();
   const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
-  if (open.some((r) => r.status === want)) return;
   const y = isoDate(new Date(Date.now() - 864e5));
-  // Mehrmals am selben Tag tippen erzeugt keine Schnipsel (Wunsch 27.11.):
-  // ein heute begonnener Eintrag wird geändert („Gut“ nimmt ihn zurück), ältere enden gestern
-  let done = false;
-  for (const r of open) {
-    let q;
-    if (r.datum_von === t && want !== "gut" && !done) { q = db.from("befinden").update({ status: want }).eq("id", r.id); done = true; }
-    else if (r.datum_von === t) q = db.from("befinden").delete().eq("id", r.id);
-    else q = db.from("befinden").update({ datum_bis: y }).eq("id", r.id);
+  // An/aus je Zustand (27.11.), ohne Schnipsel: heute begonnen → löschen, älter → endet gestern;
+  // ein gerade erst beendeter gleicher Zustand läuft einfach weiter
+  const stop = (r) => (r.datum_von === t ? db.from("befinden").delete().eq("id", r.id) : db.from("befinden").update({ datum_bis: y }).eq("id", r.id));
+  const mine = open.filter((r) => r.status === want);
+  let qs, msg;
+  if (want === "gut") { if (!open.length) return; qs = open.map(stop); msg = "Schön, dass es dir gut geht ✓"; }
+  else if (mine.length) { qs = mine.map(stop); msg = B_OPT.find((o) => o[0] === want)[1] + " beendet ✓"; }
+  else {
+    const prev = (cache.befinden || []).find((r) => r.status === want && (r.datum_bis === y || r.datum_bis === t));
+    qs = [prev ? db.from("befinden").update({ datum_bis: null }).eq("id", prev.id) : db.from("befinden").insert({ datum_von: t, status: want })];
+    msg = B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓";
+  }
+  for (const q of qs) {
     const { error } = await q;
     if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
   }
-  if (want !== "gut" && !done) {
-    const { error } = await db.from("befinden").insert({ datum_von: t, status: want });
-    if (error) { console.error(error); return toast("Speichern hat nicht geklappt."); }
-  }
-  toast(want === "gut" ? "Schön, dass es dir gut geht ✓" : B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓");
+  toast(msg);
   await load("befinden");
   renderAll();
 });
