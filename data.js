@@ -326,11 +326,14 @@ function renderBzeit() {
   const box = $("[data-bzeit]"); if (!box) return;
   const rs = (cache.befinden || []).filter((r) => r.status !== "gut" && r.datum_von);
   const t = today(), now = new Date(t + "T12:00:00");
-  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7) - 7 * 7);
+  // aktuelle Woche oben, nach unten ältere Wochen bis zum ersten Eintrag (mind. 8, höchstens 52) (Wunsch 27.11.)
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const first = rs.reduce((m, r) => (r.datum_von < m ? r.datum_von : m), t);
+  const W = Math.min(52, Math.max(8, Math.floor(daysBetween(first, isoDate(mon)) / 7) + 2));
   const cnt = {};
   let rows = "";
-  for (let w = 0; w < 8; w++) {
-    const ws = new Date(mon); ws.setDate(mon.getDate() + 7 * w);
+  for (let w = 0; w < W; w++) {
+    const ws = new Date(mon); ws.setDate(mon.getDate() - 7 * w);
     let cells = "";
     for (let d = 0; d < 7; d++) {
       const day = new Date(ws); day.setDate(ws.getDate() + d); const iso = isoDate(day);
@@ -338,7 +341,7 @@ function renderBzeit() {
         .filter((r, i, a) => a.findIndex((x) => x.status === r.status) === i)
         .sort((a, b) => Object.keys(B_COL).indexOf(a.status) - Object.keys(B_COL).indexOf(b.status));
       const fut = iso > t;
-      if (!fut) hit.forEach((r) => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
+      if (!fut && w < 8) hit.forEach((r) => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
       // mehrere Zustände am selben Tag: gleich breite schräge Streifen, beliebig viele (Wunsch 27.11.)
       const bg = hit.length === 1 ? B_COL[hit[0].status] : hit.length > 1 ? `linear-gradient(135deg, ${hit.map((r, i) => `${B_COL[r.status]} ${(i * 100 / hit.length).toFixed(1)}% ${((i + 1) * 100 / hit.length).toFixed(1)}%`).join(", ")})` : "";
       cells += `<${hit.length && !fut ? `button type="button" data-edit="befinden" data-key="${esc(hit[0].id)}" aria-label="${esc(fmtDate(iso))}: ${esc(hit.map((r) => TABLES.befinden.title(r)).join(", "))}"` : "span"} class="bz-d${iso === t ? " heute" : ""}${fut ? " fut" : ""}"${bg && !fut ? ` style="background:${bg}"` : ""}></${hit.length && !fut ? "button" : "span"}>`;
@@ -346,13 +349,15 @@ function renderBzeit() {
     rows += `<span class="bz-w">${dm(isoDate(ws))}</span>${cells}`;
   }
   const sum = Object.keys(B_COL).filter((k) => cnt[k]).map((k) => `<span><i style="background:${B_COL[k]}"></i>${TABLES.befinden.title({ status: k })} ${cnt[k]} ${cnt[k] === 1 ? "Tag" : "Tage"}</span>`).join("");
-  box.innerHTML = `<h3 class="c-title">Letzte 8 Wochen</h3>
-    <div class="bz-grid"><span></span>${["M", "D", "M", "D", "F", "S", "S"].map((x) => `<span class="bz-h">${x}</span>`).join("")}${rows}</div>
-    <div class="c-legend bz-leg">${sum || `<span>Alles gut in den letzten 8 Wochen</span>`}</div>`;
+  box.innerHTML = `<h3 class="c-title">Verlauf</h3>
+    <div class="c-legend bz-leg"><span class="muted">Letzte 8 Wochen:</span>${sum || `<span>alles gut</span>`}</div>
+    <div class="bz-grid"><span></span>${["M", "D", "M", "D", "F", "S", "S"].map((x) => `<span class="bz-h">${x}</span>`).join("")}${rows}</div>`;
 }
+// aktiv = offen oder endet erst heute oder später (sonst ließ „Gut“ solche Einträge stehen, 27.11.)
+const bActive = () => { const t = today(); return (cache.befinden || []).filter((r) => r.status !== "gut" && (!r.datum_bis || r.datum_bis >= t)); };
 function renderBnow() {
   const box = $("[data-bnow]"); if (!box) return;
-  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const open = bActive();
   // Mehrere Zustände gleichzeitig möglich (27.11.): jeder Knopf schaltet seinen Zustand an oder aus
   const on = (k) => (k === "gut" ? !open.length : open.some((r) => r.status === k));
   box.innerHTML = `<h3 class="c-title">Wie geht's dir heute?</h3>
@@ -362,7 +367,7 @@ function renderBnow() {
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-bset]"); if (!b || !db) return;
   const want = b.dataset.bset, t = today();
-  const open = (cache.befinden || []).filter((r) => !r.datum_bis && r.status !== "gut");
+  const open = bActive();
   const y = isoDate(new Date(Date.now() - 864e5));
   // An/aus je Zustand (27.11.), ohne Schnipsel: heute begonnen → löschen, älter → endet gestern;
   // ein gerade erst beendeter gleicher Zustand läuft einfach weiter
@@ -372,7 +377,7 @@ document.addEventListener("click", async (e) => {
   if (want === "gut") { if (!open.length) return; qs = open.map(stop); msg = "Schön, dass es dir gut geht ✓"; }
   else if (mine.length) { qs = mine.map(stop); msg = B_OPT.find((o) => o[0] === want)[1] + " beendet ✓"; }
   else {
-    const prev = (cache.befinden || []).find((r) => r.status === want && (r.datum_bis === y || r.datum_bis === t));
+    const prev = (cache.befinden || []).find((r) => r.status === want && r.datum_bis === y);
     qs = [prev ? db.from("befinden").update({ datum_bis: null }).eq("id", prev.id) : db.from("befinden").insert({ datum_von: t, status: want })];
     msg = B_OPT.find((o) => o[0] === want)[1] + " eingetragen ✓";
   }
